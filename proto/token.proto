@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package = "./pb";
+
+package token;
+
+service TokenService {
+	rpc GetAccessToken (GetAccessTokenRequest) returns (GetAccessTokenResponse);
+}
+
+message GetAccessTokenRequest {
+	string code = 1;
+}
+
+message GetAccessTokenResponse {
+	string access_token = 1;
+}
