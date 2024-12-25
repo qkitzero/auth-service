@@ -1,4 +1,4 @@
-package token
+package auth
 
 import (
 	"context"
@@ -6,18 +6,18 @@ import (
 	"token/pb"
 )
 
-type TokenHandler struct {
-	pb.UnimplementedTokenServiceServer
+type AuthHandler struct {
+	pb.UnimplementedAuthServiceServer
 	tokenService token.TokenService
 }
 
-func NewTokenHandler(tokenService token.TokenService) *TokenHandler {
-	return &TokenHandler{
+func NewAuthHandler(tokenService token.TokenService) *AuthHandler {
+	return &AuthHandler{
 		tokenService: tokenService,
 	}
 }
 
-func (h *TokenHandler) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (*pb.GetAccessTokenResponse, error) {
+func (h *AuthHandler) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (*pb.GetAccessTokenResponse, error) {
 	_, err := h.tokenService.CreateTokne()
 	if err != nil {
 		return nil, err

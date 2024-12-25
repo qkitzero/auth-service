@@ -9,7 +9,7 @@ import (
 	application_token "token/internal/application/token"
 	"token/internal/infrastructure/db"
 	infrastructure_token "token/internal/infrastructure/persistence/token"
-	interface_token "token/internal/interface/grpc/token"
+	interface_auth "token/internal/interface/grpc/auth"
 	"token/pb"
 
 	"google.golang.org/grpc"
@@ -38,9 +38,9 @@ func main() {
 
 	tokenService := application_token.NewTokenService(tokenRepository)
 
-	tokenHandler := interface_token.NewTokenHandler(*tokenService)
+	tokenHandler := interface_auth.NewAuthHandler(*tokenService)
 
-	pb.RegisterTokenServiceServer(server, tokenHandler)
+	pb.RegisterAuthServiceServer(server, tokenHandler)
 
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err)
