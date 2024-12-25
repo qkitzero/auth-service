@@ -1,9 +1,9 @@
 services:
-  token-server:
+  auth-server:
     build:
       context: .
-      dockerfile: ./build/token/Dockerfile
-    container_name: token-server
+      dockerfile: ./build/auth/Dockerfile
+    container_name: auth-server
     restart: always
     environment:
       - PORT=${SERVER_PORT}
@@ -13,7 +13,7 @@ services:
       - DB_PORT=${DB_PORT}
       - DB_NAME=${DB_NAME}
     depends_on:
-      token-db:
+      auth-db:
         condition: service_healthy
     ports:
       - "${SERVER_EXTERNAL_PORT}:${SERVER_PORT}"
@@ -24,9 +24,9 @@ services:
       retries: 5
       start_period: 10s
 
-  token-db:
+  auth-db:
     image: mysql:8.0
-    container_name: token-db
+    container_name: auth-db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}

@@ -2,9 +2,9 @@ syntax = "proto3";
 
 option go_package = "./pb";
 
-package token;
+package auth;
 
-service TokenService {
+service AuthService {
 	rpc GetAccessToken (GetAccessTokenRequest) returns (GetAccessTokenResponse);
 }
 
