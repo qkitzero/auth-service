@@ -41,6 +41,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
+    volumes:
+      - auth-db-data:/var/lib/mysql
 
   keycloak-server:
     image: quay.io/keycloak/keycloak:26.0.7
@@ -79,6 +81,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
+    volumes:
+      - keycloak-db-data:/var/lib/mysql
 
   protoc:
     build:
@@ -87,3 +91,7 @@ services:
     volumes:
       - .:/work
     command: /bin/sh -c "protoc --go_out=. --go-grpc_out=. ./proto/*.proto"
+
+volumes:
+  auth-db-data:
+  keycloak-db-data:
