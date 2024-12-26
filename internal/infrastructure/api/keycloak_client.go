@@ -42,7 +42,7 @@ type TokenResponse struct {
 	RefreshExpiresIn int    `json:"refresh_expires_in"`
 }
 
-func (c KeycloakClient) Token(code string) (*TokenResponse, error) {
+func (c KeycloakClient) GetToken(code string) (*TokenResponse, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
 
 	data := url.Values{}

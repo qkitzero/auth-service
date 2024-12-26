@@ -2,8 +2,6 @@ package auth
 
 import (
 	"token/internal/infrastructure/api"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthService struct {
@@ -14,18 +12,24 @@ func NewTokenService(keycloakClient api.KeycloakClient) *AuthService {
 	return &AuthService{keycloakClient: keycloakClient}
 }
 
-func (s *AuthService) Tokne(code string) (*api.TokenResponse, error) {
-	tokenResponse, err := s.keycloakClient.Token(code)
+func (s *AuthService) GetTokne(code string) (*api.TokenResponse, error) {
+	tokenResponse, err := s.keycloakClient.GetToken(code)
 	if err != nil {
 		return nil, err
 	}
 	return tokenResponse, nil
 }
 
-func (s *AuthService) VerifyTokne(token string) (*jwt.Token, error) {
+func (s *AuthService) ValidateToken(token string) (string, error) {
 	verifiedToken, err := s.keycloakClient.VerifyToken(token)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return verifiedToken, nil
+
+	userID, err := verifiedToken.Claims.GetSubject()
+	if err != nil {
+		return "", err
+	}
+
+	return userID, nil
 }
