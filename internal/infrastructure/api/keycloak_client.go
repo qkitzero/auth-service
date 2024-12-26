@@ -2,11 +2,16 @@ package api
 
 import (
 	"bytes"
+	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type KeycloakClient struct {
@@ -69,4 +74,90 @@ func (c KeycloakClient) Token(code string) (*TokenResponse, error) {
 	}
 
 	return &tokenResponse, nil
+}
+
+type PublicKeyResponse struct {
+	Keys []PublicKey `json:"keys"`
+}
+
+type PublicKey struct {
+	Kid string `json:"kid"`
+	N   string `json:"n"`
+	E   string `json:"e"`
+}
+
+func (c KeycloakClient) VerifyToken(token string) (*jwt.Token, error) {
+	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", c.BaseURL, c.Realm)
+
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
+	}
+
+	var publicKeyResponse PublicKeyResponse
+	if err := json.NewDecoder(resp.Body).Decode(&publicKeyResponse); err != nil {
+		return nil, err
+	}
+
+	if len(publicKeyResponse.Keys) == 0 {
+		return nil, fmt.Errorf("missing public key")
+	}
+
+	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		kid := token.Header["kid"]
+		if kid == nil {
+			return nil, fmt.Errorf("no kid in token header")
+		}
+
+		var publicKey *PublicKey
+
+		for _, key := range publicKeyResponse.Keys {
+			if key.Kid == kid {
+				publicKey = &key
+				break
+			}
+		}
+
+		if publicKey == nil {
+			return nil, fmt.Errorf("could not find public key")
+		}
+
+		nBytes, err := base64.RawURLEncoding.DecodeString(publicKey.N)
+		if err != nil {
+			return nil, err
+		}
+
+		eBytes, err := base64.RawURLEncoding.DecodeString(publicKey.E)
+		if err != nil {
+			return nil, err
+		}
+
+		n := new(big.Int).SetBytes(nBytes)
+		e := int(new(big.Int).SetBytes(eBytes).Int64())
+
+		return &rsa.PublicKey{N: n, E: e}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if !parsedToken.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return parsedToken, nil
 }
