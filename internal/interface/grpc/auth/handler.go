@@ -2,9 +2,13 @@ package auth
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"token/internal/application/auth"
 	"token/internal/application/token"
 	"token/pb"
+
+	"google.golang.org/grpc/metadata"
 )
 
 type AuthHandler struct {
@@ -20,8 +24,8 @@ func NewAuthHandler(authService auth.AuthService, tokenService token.TokenServic
 	}
 }
 
-func (h *AuthHandler) GetAccessToken(ctx context.Context, req *pb.GetAccessTokenRequest) (*pb.GetAccessTokenResponse, error) {
-	tokenResponse, err := h.authService.Tokne(req.GetCode())
+func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+	tokenResponse, err := h.authService.GetTokne(req.GetCode())
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +35,33 @@ func (h *AuthHandler) GetAccessToken(ctx context.Context, req *pb.GetAccessToken
 		return nil, err
 	}
 
-	return &pb.GetAccessTokenResponse{
+	return &pb.LoginResponse{
 		AccessToken: tokenResponse.AccessToken,
+	}, nil
+}
+
+func (h *AuthHandler) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to get metadata")
+	}
+
+	authHeader := md.Get("authorization")
+	if len(authHeader) == 0 {
+		return nil, fmt.Errorf("failed to get authorization header")
+	}
+
+	accessToken := strings.TrimPrefix(authHeader[0], "Bearer ")
+	if accessToken == "" {
+		return nil, fmt.Errorf("invalid authorization header format")
+	}
+
+	userID, err := h.authService.ValidateToken(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.ValidateTokenResponse{
+		UserId: userID,
 	}, nil
 }
