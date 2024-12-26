@@ -6,7 +6,9 @@ import (
 	"net"
 	"os"
 
+	application_auth "token/internal/application/auth"
 	application_token "token/internal/application/token"
+	"token/internal/infrastructure/api"
 	"token/internal/infrastructure/db"
 	infrastructure_token "token/internal/infrastructure/persistence/token"
 	interface_auth "token/internal/interface/grpc/auth"
@@ -34,11 +36,20 @@ func main() {
 
 	server := grpc.NewServer()
 
+	keycloakClient := api.NewKeycloakClient(
+		getEnv("KEYCLOAK_SERVER_BASE_URL"),
+		getEnv("KEYCLOAK_CLIENT_ID"),
+		getEnv("KEYCLOAK_CLIENT_SECRET"),
+		getEnv("KEYCLOAK_CLIENT_REDIRECT_URI"),
+		getEnv("KEYCLOAK_REALM"),
+	)
+
 	tokenRepository := infrastructure_token.NewTokenRepository(db)
 
+	authService := application_auth.NewTokenService(keycloakClient)
 	tokenService := application_token.NewTokenService(tokenRepository)
 
-	tokenHandler := interface_auth.NewAuthHandler(*tokenService)
+	tokenHandler := interface_auth.NewAuthHandler(*authService, *tokenService)
 
 	pb.RegisterAuthServiceServer(server, tokenHandler)
 
