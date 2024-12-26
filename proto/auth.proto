@@ -5,13 +5,21 @@ option go_package = "./pb";
 package auth;
 
 service AuthService {
-	rpc GetAccessToken (GetAccessTokenRequest) returns (GetAccessTokenResponse);
+	rpc Login (LoginRequest) returns (LoginResponse);
+	rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
 }
 
-message GetAccessTokenRequest {
+message LoginRequest {
 	string code = 1;
 }
 
-message GetAccessTokenResponse {
+message LoginResponse {
 	string access_token = 1;
+}
+
+message ValidateTokenRequest {
+}
+
+message ValidateTokenResponse {
+	string user_id = 1;
 }
