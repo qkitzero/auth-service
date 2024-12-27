@@ -30,13 +30,18 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, err
 	}
 
-	_, err = h.tokenService.CreateTokne()
+	user, err := h.authService.ValidateToken(tokenResponse.AccessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := h.tokenService.CreateOrUpdateToken(tokenResponse.AccessToken, tokenResponse.RefreshToken, user.ID())
 	if err != nil {
 		return nil, err
 	}
 
 	return &pb.LoginResponse{
-		AccessToken: tokenResponse.AccessToken,
+		AccessToken: token.AccessToken(),
 	}, nil
 }
 
@@ -56,12 +61,12 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 		return nil, fmt.Errorf("invalid authorization header format")
 	}
 
-	userID, err := h.authService.ValidateToken(accessToken)
+	user, err := h.authService.ValidateToken(accessToken)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pb.ValidateTokenResponse{
-		UserId: userID,
+		UserId: user.ID().String(),
 	}, nil
 }
