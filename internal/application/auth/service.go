@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"token/internal/domain/user"
 	"token/internal/infrastructure/api"
 )
 
@@ -20,16 +21,23 @@ func (s *AuthService) GetTokne(code string) (*api.TokenResponse, error) {
 	return tokenResponse, nil
 }
 
-func (s *AuthService) ValidateToken(token string) (string, error) {
+func (s *AuthService) ValidateToken(token string) (user.User, error) {
 	verifiedToken, err := s.keycloakClient.VerifyToken(token)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	userID, err := verifiedToken.Claims.GetSubject()
+	sub, err := verifiedToken.Claims.GetSubject()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return userID, nil
+	userID, err := user.NewUserID(sub)
+	if err != nil {
+		return nil, err
+	}
+
+	user := user.NewUser(userID)
+
+	return user, nil
 }
