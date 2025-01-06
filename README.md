@@ -1,3 +1,5 @@
-# Token Service
+# Auth Service
 
 - keycloak
+- Access token
+- Refresh token
