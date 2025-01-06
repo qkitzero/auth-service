@@ -41,3 +41,7 @@ func (s *AuthService) ValidateToken(token string) (user.User, error) {
 
 	return user, nil
 }
+
+func (s *AuthService) RevokeToken(refreshToken string) error {
+	return s.keycloakClient.RevokeToken(refreshToken)
+}
