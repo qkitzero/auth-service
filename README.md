@@ -1,5 +1,8 @@
 # Auth Service
 
-- keycloak
-- Access token
-- Refresh token
+- Keycloak
+- Microservices architecture
+- gRPC
+- DDD
+- Docker
+- Test
