@@ -13,8 +13,8 @@ func NewTokenService(keycloakClient api.KeycloakClient) *AuthService {
 	return &AuthService{keycloakClient: keycloakClient}
 }
 
-func (s *AuthService) GetTokne(code string) (*api.TokenResponse, error) {
-	tokenResponse, err := s.keycloakClient.GetToken(code)
+func (s *AuthService) ExchangeCodeForToken(code string) (*api.TokenResponse, error) {
+	tokenResponse, err := s.keycloakClient.ExchangeCodeForToken(code)
 	if err != nil {
 		return nil, err
 	}
@@ -40,4 +40,8 @@ func (s *AuthService) ValidateToken(token string) (user.User, error) {
 	user := user.NewUser(userID)
 
 	return user, nil
+}
+
+func (s *AuthService) RevokeToken(refreshToken string) error {
+	return s.keycloakClient.RevokeToken(refreshToken)
 }

@@ -25,7 +25,7 @@ func NewAuthHandler(authService auth.AuthService, tokenService token.TokenServic
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	tokenResponse, err := h.authService.GetTokne(req.GetCode())
+	tokenResponse, err := h.authService.ExchangeCodeForToken(req.GetCode())
 	if err != nil {
 		return nil, err
 	}
@@ -69,4 +69,37 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 	return &pb.ValidateTokenResponse{
 		UserId: user.ID().String(),
 	}, nil
+}
+
+func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.LogoutResponse, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to get metadata")
+	}
+
+	authHeader := md.Get("authorization")
+	if len(authHeader) == 0 {
+		return nil, fmt.Errorf("failed to get authorization header")
+	}
+
+	accessToken := strings.TrimPrefix(authHeader[0], "Bearer ")
+	if accessToken == "" {
+		return nil, fmt.Errorf("invalid authorization header format")
+	}
+
+	user, err := h.authService.ValidateToken(accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := h.tokenService.GetTokne(user.ID())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.authService.RevokeToken(token.RefreshToken()); err != nil {
+		return nil, err
+	}
+
+	return &pb.LogoutResponse{}, nil
 }

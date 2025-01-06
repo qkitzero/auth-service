@@ -42,7 +42,7 @@ type TokenResponse struct {
 	RefreshExpiresIn int    `json:"refresh_expires_in"`
 }
 
-func (c KeycloakClient) GetToken(code string) (*TokenResponse, error) {
+func (c KeycloakClient) ExchangeCodeForToken(code string) (*TokenResponse, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
 
 	data := url.Values{}
@@ -160,4 +160,31 @@ func (c KeycloakClient) VerifyToken(token string) (*jwt.Token, error) {
 	}
 
 	return parsedToken, nil
+}
+
+func (c KeycloakClient) RevokeToken(refreshToken string) error {
+	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", c.BaseURL, c.Realm)
+
+	data := url.Values{}
+	data.Set("client_id", c.ClientID)
+	data.Set("client_secret", c.ClientSecret)
+	data.Set("refresh_token", refreshToken)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("failed to logout, status: %d", resp.StatusCode)
+	}
+
+	return nil
 }

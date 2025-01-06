@@ -7,6 +7,7 @@ package auth;
 service AuthService {
 	rpc Login (LoginRequest) returns (LoginResponse);
 	rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
+	rpc Logout (LogoutRequest) returns (LogoutResponse);
 }
 
 message LoginRequest {
@@ -22,4 +23,10 @@ message ValidateTokenRequest {
 
 message ValidateTokenResponse {
 	string user_id = 1;
+}
+
+message LogoutRequest {
+}
+
+message LogoutResponse {
 }
