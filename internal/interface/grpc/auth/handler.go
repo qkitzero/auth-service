@@ -25,7 +25,7 @@ func NewAuthHandler(authService auth.AuthService, tokenService token.TokenServic
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	tokenResponse, err := h.authService.GetTokne(req.GetCode())
+	tokenResponse, err := h.authService.ExchangeCodeForToken(req.GetCode())
 	if err != nil {
 		return nil, err
 	}
