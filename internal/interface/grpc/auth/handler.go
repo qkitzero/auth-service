@@ -2,104 +2,94 @@ package auth
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"token/internal/application/auth"
-	"token/internal/application/token"
+	"token/internal/application/user"
 	"token/pb"
-
-	"google.golang.org/grpc/metadata"
 )
 
 type AuthHandler struct {
 	pb.UnimplementedAuthServiceServer
-	authService  auth.AuthService
-	tokenService token.TokenService
+	authService *auth.AuthService
+	userService *user.UserService
 }
 
-func NewAuthHandler(authService auth.AuthService, tokenService token.TokenService) *AuthHandler {
+func NewAuthHandler(
+	authService *auth.AuthService,
+	userService *user.UserService,
+) *AuthHandler {
 	return &AuthHandler{
-		authService:  authService,
-		tokenService: tokenService,
+		authService: authService,
+		userService: userService,
 	}
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	tokenResponse, err := h.authService.ExchangeCodeForToken(req.GetCode())
+	token, err := h.authService.ExchangeCodeForToken(req.GetCode())
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := h.authService.ValidateToken(tokenResponse.AccessToken)
+	sub, err := h.authService.VerifyToken(token.AccessToken())
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := h.tokenService.CreateOrUpdateToken(tokenResponse.AccessToken, tokenResponse.RefreshToken, user.ID())
+	user, err := h.userService.GetOrCreateUser(sub)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pb.LoginResponse{
-		AccessToken: token.AccessToken(),
+		UserId:       user.ID().String(),
+		AccessToken:  token.AccessToken(),
+		RefreshToken: token.RefreshToken(),
 	}, nil
 }
 
-func (h *AuthHandler) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("failed to get metadata")
-	}
-
-	authHeader := md.Get("authorization")
-	if len(authHeader) == 0 {
-		return nil, fmt.Errorf("failed to get authorization header")
-	}
-
-	accessToken := strings.TrimPrefix(authHeader[0], "Bearer ")
-	if accessToken == "" {
-		return nil, fmt.Errorf("invalid authorization header format")
-	}
-
-	user, err := h.authService.ValidateToken(accessToken)
+func (h *AuthHandler) VerifyToken(ctx context.Context, req *pb.VerifyTokenRequest) (*pb.VerifyTokenResponse, error) {
+	sub, err := h.authService.VerifyToken(req.GetAccessToken())
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.ValidateTokenResponse{
+	user, err := h.userService.GetUser(sub)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.VerifyTokenResponse{
 		UserId: user.ID().String(),
 	}, nil
 }
 
+func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
+	token, err := h.authService.RefreshToken(req.GetRefreshToken())
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.RefreshTokenResponse{
+		AccessToken:  token.AccessToken(),
+		RefreshToken: token.RefreshToken(),
+	}, nil
+}
+
 func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.LogoutResponse, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("failed to get metadata")
-	}
-
-	authHeader := md.Get("authorization")
-	if len(authHeader) == 0 {
-		return nil, fmt.Errorf("failed to get authorization header")
-	}
-
-	accessToken := strings.TrimPrefix(authHeader[0], "Bearer ")
-	if accessToken == "" {
-		return nil, fmt.Errorf("invalid authorization header format")
-	}
-
-	user, err := h.authService.ValidateToken(accessToken)
+	sub, err := h.authService.VerifyToken(req.GetAccessToken())
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := h.tokenService.GetTokne(user.ID())
+	user, err := h.userService.GetUser(sub)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := h.authService.RevokeToken(token.RefreshToken()); err != nil {
+	if err := h.authService.RevokeToken(req.GetRefreshToken()); err != nil {
 		return nil, err
 	}
 
-	return &pb.LogoutResponse{}, nil
+	return &pb.LogoutResponse{
+		UserId: user.ID().String(),
+	}, nil
 }

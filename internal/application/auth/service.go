@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"token/internal/domain/user"
+	"token/internal/domain/token"
 	"token/internal/infrastructure/api"
 )
 
@@ -13,33 +13,40 @@ func NewTokenService(keycloakClient api.KeycloakClient) *AuthService {
 	return &AuthService{keycloakClient: keycloakClient}
 }
 
-func (s *AuthService) ExchangeCodeForToken(code string) (*api.TokenResponse, error) {
+func (s *AuthService) ExchangeCodeForToken(code string) (token.Token, error) {
 	tokenResponse, err := s.keycloakClient.ExchangeCodeForToken(code)
 	if err != nil {
 		return nil, err
 	}
-	return tokenResponse, nil
+
+	token := token.NewToken(tokenResponse.AccessToken, tokenResponse.RefreshToken)
+
+	return token, nil
 }
 
-func (s *AuthService) ValidateToken(token string) (user.User, error) {
-	verifiedToken, err := s.keycloakClient.VerifyToken(token)
+func (s *AuthService) RefreshToken(refreshToken string) (token.Token, error) {
+	tokenResponse, err := s.keycloakClient.RefreshToken(refreshToken)
 	if err != nil {
 		return nil, err
+	}
+
+	token := token.NewToken(tokenResponse.AccessToken, tokenResponse.RefreshToken)
+
+	return token, nil
+}
+
+func (s *AuthService) VerifyToken(accessToken string) (string, error) {
+	verifiedToken, err := s.keycloakClient.VerifyToken(accessToken)
+	if err != nil {
+		return "", err
 	}
 
 	sub, err := verifiedToken.Claims.GetSubject()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	userID, err := user.NewUserID(sub)
-	if err != nil {
-		return nil, err
-	}
-
-	user := user.NewUser(userID)
-
-	return user, nil
+	return sub, nil
 }
 
 func (s *AuthService) RevokeToken(refreshToken string) error {

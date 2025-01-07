@@ -2,7 +2,7 @@ package db
 
 import (
 	"fmt"
-	"token/internal/infrastructure/persistence/token"
+	"token/internal/infrastructure/persistence/user"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -16,7 +16,7 @@ func Init(dbUser, dbPassword, dbHost, dbPort, dbName string) (*gorm.DB, error) {
 	}
 
 	if err := db.AutoMigrate(
-		&token.TokenTable{},
+		&user.UserTable{},
 	); err != nil {
 		return nil, err
 	}

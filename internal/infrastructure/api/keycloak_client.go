@@ -76,6 +76,40 @@ func (c KeycloakClient) ExchangeCodeForToken(code string) (*TokenResponse, error
 	return &tokenResponse, nil
 }
 
+func (c KeycloakClient) RefreshToken(refreshToken string) (*TokenResponse, error) {
+	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
+
+	data := url.Values{}
+	data.Set("grant_type", "refresh_token")
+	data.Set("refresh_token", refreshToken)
+	data.Set("client_id", c.ClientID)
+	data.Set("client_secret", c.ClientSecret)
+	data.Set("redirect_uri", c.RedirectURI)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
+	}
+
+	var tokenResponse TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return nil, err
+	}
+
+	return &tokenResponse, nil
+}
+
 type PublicKeyResponse struct {
 	Keys []PublicKey `json:"keys"`
 }
@@ -86,7 +120,7 @@ type PublicKey struct {
 	E   string `json:"e"`
 }
 
-func (c KeycloakClient) VerifyToken(token string) (*jwt.Token, error) {
+func (c KeycloakClient) VerifyToken(accessToken string) (*jwt.Token, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", c.BaseURL, c.Realm)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -113,7 +147,7 @@ func (c KeycloakClient) VerifyToken(token string) (*jwt.Token, error) {
 		return nil, fmt.Errorf("missing public key")
 	}
 
-	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
