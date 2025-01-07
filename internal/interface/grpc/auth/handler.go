@@ -9,13 +9,13 @@ import (
 
 type AuthHandler struct {
 	pb.UnimplementedAuthServiceServer
-	authService *auth.AuthService
-	userService *user.UserService
+	authService auth.AuthService
+	userService user.UserService
 }
 
 func NewAuthHandler(
-	authService *auth.AuthService,
-	userService *user.UserService,
+	authService auth.AuthService,
+	userService user.UserService,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,

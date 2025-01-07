@@ -5,15 +5,22 @@ import (
 	"token/internal/infrastructure/api"
 )
 
-type AuthService struct {
+type AuthService interface {
+	ExchangeCodeForToken(code string) (token.Token, error)
+	RefreshToken(refreshToken string) (token.Token, error)
+	VerifyToken(accessToken string) (string, error)
+	RevokeToken(refreshToken string) error
+}
+
+type authService struct {
 	keycloakClient api.KeycloakClient
 }
 
-func NewTokenService(keycloakClient api.KeycloakClient) *AuthService {
-	return &AuthService{keycloakClient: keycloakClient}
+func NewTokenService(keycloakClient api.KeycloakClient) AuthService {
+	return &authService{keycloakClient: keycloakClient}
 }
 
-func (s *AuthService) ExchangeCodeForToken(code string) (token.Token, error) {
+func (s *authService) ExchangeCodeForToken(code string) (token.Token, error) {
 	tokenResponse, err := s.keycloakClient.ExchangeCodeForToken(code)
 	if err != nil {
 		return nil, err
@@ -24,7 +31,7 @@ func (s *AuthService) ExchangeCodeForToken(code string) (token.Token, error) {
 	return token, nil
 }
 
-func (s *AuthService) RefreshToken(refreshToken string) (token.Token, error) {
+func (s *authService) RefreshToken(refreshToken string) (token.Token, error) {
 	tokenResponse, err := s.keycloakClient.RefreshToken(refreshToken)
 	if err != nil {
 		return nil, err
@@ -35,7 +42,7 @@ func (s *AuthService) RefreshToken(refreshToken string) (token.Token, error) {
 	return token, nil
 }
 
-func (s *AuthService) VerifyToken(accessToken string) (string, error) {
+func (s *authService) VerifyToken(accessToken string) (string, error) {
 	verifiedToken, err := s.keycloakClient.VerifyToken(accessToken)
 	if err != nil {
 		return "", err
@@ -49,6 +56,6 @@ func (s *AuthService) VerifyToken(accessToken string) (string, error) {
 	return sub, nil
 }
 
-func (s *AuthService) RevokeToken(refreshToken string) error {
+func (s *authService) RevokeToken(refreshToken string) error {
 	return s.keycloakClient.RevokeToken(refreshToken)
 }
