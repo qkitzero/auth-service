@@ -7,22 +7,26 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserService struct {
+type UserService interface {
+	GetOrCreateUser(sub string) (user.User, error)
+	GetUser(sub string) (user.User, error)
+}
+
+type userService struct {
 	repo user.UserRepository
 }
 
-func NewUserService(repo user.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo user.UserRepository) UserService {
+	return &userService{repo: repo}
 }
 
-func (s *UserService) GetOrCreateUser(sub string) (user.User, error) {
+func (s *userService) GetOrCreateUser(sub string) (user.User, error) {
 	userID, err := user.NewUserID(sub)
 	if err != nil {
 		return nil, err
 	}
 
 	existingUser, err := s.repo.Read(userID)
-
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
@@ -40,7 +44,7 @@ func (s *UserService) GetOrCreateUser(sub string) (user.User, error) {
 	return user, nil
 }
 
-func (s *UserService) GetUser(sub string) (user.User, error) {
+func (s *userService) GetUser(sub string) (user.User, error) {
 	userID, err := user.NewUserID(sub)
 	if err != nil {
 		return nil, err
