@@ -7,10 +7,10 @@ import (
 	"os"
 
 	application_auth "token/internal/application/auth"
-	application_token "token/internal/application/token"
+	application_user "token/internal/application/user"
 	"token/internal/infrastructure/api"
 	"token/internal/infrastructure/db"
-	infrastructure_token "token/internal/infrastructure/persistence/token"
+	infrastructure_user "token/internal/infrastructure/persistence/user"
 	interface_auth "token/internal/interface/grpc/auth"
 	"token/pb"
 
@@ -43,13 +43,12 @@ func main() {
 		getEnv("KEYCLOAK_CLIENT_REDIRECT_URI"),
 		getEnv("KEYCLOAK_REALM"),
 	)
-
-	tokenRepository := infrastructure_token.NewTokenRepository(db)
+	userRepository := infrastructure_user.NewUserRepository(db)
 
 	authService := application_auth.NewTokenService(keycloakClient)
-	tokenService := application_token.NewTokenService(tokenRepository)
+	userService := application_user.NewUserService(userRepository)
 
-	tokenHandler := interface_auth.NewAuthHandler(*authService, *tokenService)
+	tokenHandler := interface_auth.NewAuthHandler(authService, userService)
 
 	pb.RegisterAuthServiceServer(server, tokenHandler)
 
