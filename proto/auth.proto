@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option go_package = "./pb";
+
+package auth;
+
+service AuthService {
+	rpc Login (LoginRequest) returns (LoginResponse);
+	rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);
+	rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
+	rpc Logout (LogoutRequest) returns (LogoutResponse);
+}
+
+message LoginRequest {
+	string code = 1;
+}
+
+message LoginResponse {
+	string user_id = 1;
+	string access_token = 2;
+	string refresh_token = 3;
+}
+
+message VerifyTokenRequest {
+	string access_token = 1;
+}
+
+message VerifyTokenResponse {
+	string user_id = 1;
+}
+
+message RefreshTokenRequest {
+	string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+	string access_token = 1;
+	string refresh_token = 2;
+}
+
+message LogoutRequest {
+	string access_token = 1;
+	string refresh_token = 2;
+}
+
+message LogoutResponse {
+	string user_id = 1;
+}
