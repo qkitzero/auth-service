@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"auth/internal/domain/token"
-	"auth/internal/infrastructure/api"
+	"github.com/qkitzero/auth/internal/domain/token"
+	"github.com/qkitzero/auth/internal/infrastructure/api"
 )
 
 type AuthService interface {
