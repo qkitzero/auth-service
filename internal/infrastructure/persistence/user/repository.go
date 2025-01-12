@@ -1,7 +1,7 @@
 package user
 
 import (
-	"token/internal/domain/user"
+	"auth/internal/domain/user"
 
 	"gorm.io/gorm"
 )
