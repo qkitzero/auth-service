@@ -1,8 +1,8 @@
 package user
 
 import (
+	"auth/internal/domain/user"
 	"errors"
-	"token/internal/domain/user"
 
 	"gorm.io/gorm"
 )

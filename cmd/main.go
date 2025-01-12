@@ -6,13 +6,13 @@ import (
 	"net"
 	"os"
 
-	application_auth "token/internal/application/auth"
-	application_user "token/internal/application/user"
-	"token/internal/infrastructure/api"
-	"token/internal/infrastructure/db"
-	infrastructure_user "token/internal/infrastructure/persistence/user"
-	interface_auth "token/internal/interface/grpc/auth"
-	"token/pb"
+	application_auth "auth/internal/application/auth"
+	application_user "auth/internal/application/user"
+	"auth/internal/infrastructure/api"
+	"auth/internal/infrastructure/db"
+	infrastructure_user "auth/internal/infrastructure/persistence/user"
+	interface_auth "auth/internal/interface/grpc/auth"
+	"auth/pb"
 
 	"google.golang.org/grpc"
 )

@@ -1,8 +1,8 @@
 package db
 
 import (
+	"auth/internal/infrastructure/persistence/user"
 	"fmt"
-	"token/internal/infrastructure/persistence/user"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"

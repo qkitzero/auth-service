@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"token/internal/domain/token"
-	"token/internal/infrastructure/api"
+	"auth/internal/domain/token"
+	"auth/internal/infrastructure/api"
 )
 
 type AuthService interface {

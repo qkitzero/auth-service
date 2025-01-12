@@ -1,10 +1,10 @@
 package auth
 
 import (
+	"auth/internal/application/auth"
+	"auth/internal/application/user"
+	"auth/pb"
 	"context"
-	"token/internal/application/auth"
-	"token/internal/application/user"
-	"token/pb"
 )
 
 type AuthHandler struct {
