@@ -1,7 +1,7 @@
 package user
 
 import (
-	"auth/internal/domain/user"
+	"github.com/qkitzero/auth/internal/domain/user"
 
 	"gorm.io/gorm"
 )
