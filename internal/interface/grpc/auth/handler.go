@@ -1,10 +1,11 @@
 package auth
 
 import (
-	"auth/internal/application/auth"
-	"auth/internal/application/user"
-	"auth/pb"
 	"context"
+
+	"github.com/qkitzero/auth/internal/application/auth"
+	"github.com/qkitzero/auth/internal/application/user"
+	"github.com/qkitzero/auth/pb"
 )
 
 type AuthHandler struct {

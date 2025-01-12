@@ -1,9 +1,9 @@
 package db
 
 import (
-	"auth/internal/infrastructure/persistence/user"
 	"fmt"
 
+	"github.com/qkitzero/auth/internal/infrastructure/persistence/user"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
