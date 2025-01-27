@@ -68,6 +68,8 @@ services:
     command: start-dev
     ports:
       - "${KEYCLOAK_SERVER_EXTERNAL_PORT}:${KEYCLOAK_SERVER_PORT}"
+    volumes:
+      - ./keycloak/themes:/opt/keycloak/themes
 
   keycloak-db:
     image: mysql:8.0
