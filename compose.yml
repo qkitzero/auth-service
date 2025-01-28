@@ -7,19 +7,11 @@ services:
     restart: always
     environment:
       - PORT=${SERVER_PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
       - KEYCLOAK_SERVER_BASE_URL=${KEYCLOAK_SERVER_BASE_URL}
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
       - KEYCLOAK_CLIENT_REDIRECT_URI=${KEYCLOAK_CLIENT_REDIRECT_URI}
       - KEYCLOAK_REALM=${KEYCLOAK_REALM}
-    depends_on:
-      auth-db:
-        condition: service_healthy
     ports:
       - "${SERVER_EXTERNAL_PORT}:${SERVER_PORT}"
     healthcheck:
@@ -28,26 +20,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 10s
-
-  auth-db:
-    image: mysql:8.0
-    container_name: auth-db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "${DB_EXTERNAL_PORT}:${DB_PORT}"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
-    volumes:
-      - auth-db-data:/var/lib/mysql
 
   keycloak-server:
     image: quay.io/keycloak/keycloak:26.0.7
@@ -100,5 +72,4 @@ services:
     command: /bin/sh -c "protoc --go_out=. --go-grpc_out=. ./proto/*.proto"
 
 volumes:
-  auth-db-data:
   keycloak-db-data:
