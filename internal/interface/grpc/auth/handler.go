@@ -4,24 +4,16 @@ import (
 	"context"
 
 	"github.com/qkitzero/auth/internal/application/auth"
-	"github.com/qkitzero/auth/internal/application/user"
 	"github.com/qkitzero/auth/pb"
 )
 
 type AuthHandler struct {
 	pb.UnimplementedAuthServiceServer
 	authService auth.AuthService
-	userService user.UserService
 }
 
-func NewAuthHandler(
-	authService auth.AuthService,
-	userService user.UserService,
-) *AuthHandler {
-	return &AuthHandler{
-		authService: authService,
-		userService: userService,
-	}
+func NewAuthHandler(authService auth.AuthService) *AuthHandler {
+	return &AuthHandler{authService: authService}
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
@@ -30,12 +22,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, err
 	}
 
-	sub, err := h.authService.VerifyToken(token.AccessToken())
-	if err != nil {
-		return nil, err
-	}
-
-	user, err := h.userService.GetOrCreateUser(sub)
+	user, err := h.authService.VerifyToken(token.AccessToken())
 	if err != nil {
 		return nil, err
 	}
@@ -48,12 +35,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 }
 
 func (h *AuthHandler) VerifyToken(ctx context.Context, req *pb.VerifyTokenRequest) (*pb.VerifyTokenResponse, error) {
-	sub, err := h.authService.VerifyToken(req.GetAccessToken())
-	if err != nil {
-		return nil, err
-	}
-
-	user, err := h.userService.GetUser(sub)
+	user, err := h.authService.VerifyToken(req.GetAccessToken())
 	if err != nil {
 		return nil, err
 	}
@@ -76,12 +58,7 @@ func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequ
 }
 
 func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.LogoutResponse, error) {
-	sub, err := h.authService.VerifyToken(req.GetAccessToken())
-	if err != nil {
-		return nil, err
-	}
-
-	user, err := h.userService.GetUser(sub)
+	user, err := h.authService.VerifyToken(req.GetAccessToken())
 	if err != nil {
 		return nil, err
 	}

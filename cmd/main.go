@@ -7,27 +7,13 @@ import (
 	"os"
 
 	application_auth "github.com/qkitzero/auth/internal/application/auth"
-	application_user "github.com/qkitzero/auth/internal/application/user"
 	"github.com/qkitzero/auth/internal/infrastructure/api"
-	"github.com/qkitzero/auth/internal/infrastructure/db"
-	infrastructure_user "github.com/qkitzero/auth/internal/infrastructure/persistence/user"
 	interface_auth "github.com/qkitzero/auth/internal/interface/grpc/auth"
-	"github.com/qkitzero/auth/pb"
+	auth_pb "github.com/qkitzero/auth/pb"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	db, err := db.Init(
-		getEnv("DB_USER"),
-		getEnv("DB_PASSWORD"),
-		getEnv("DB_HOST"),
-		getEnv("DB_PORT"),
-		getEnv("DB_NAME"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	listener, err := net.Listen("tcp", ":"+getEnv("PORT"))
 	if err != nil {
 		log.Fatal(err)
@@ -42,14 +28,12 @@ func main() {
 		getEnv("KEYCLOAK_CLIENT_REDIRECT_URI"),
 		getEnv("KEYCLOAK_REALM"),
 	)
-	userRepository := infrastructure_user.NewUserRepository(db)
 
 	authService := application_auth.NewTokenService(keycloakClient)
-	userService := application_user.NewUserService(userRepository)
 
-	tokenHandler := interface_auth.NewAuthHandler(authService, userService)
+	tokenHandler := interface_auth.NewAuthHandler(authService)
 
-	pb.RegisterAuthServiceServer(server, tokenHandler)
+	auth_pb.RegisterAuthServiceServer(server, tokenHandler)
 
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err)

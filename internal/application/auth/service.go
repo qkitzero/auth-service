@@ -2,13 +2,14 @@ package auth
 
 import (
 	"github.com/qkitzero/auth/internal/domain/token"
+	"github.com/qkitzero/auth/internal/domain/user"
 	"github.com/qkitzero/auth/internal/infrastructure/api"
 )
 
 type AuthService interface {
 	ExchangeCodeForToken(code string) (token.Token, error)
 	RefreshToken(refreshToken string) (token.Token, error)
-	VerifyToken(accessToken string) (string, error)
+	VerifyToken(accessToken string) (user.User, error)
 	RevokeToken(refreshToken string) error
 }
 
@@ -42,18 +43,23 @@ func (s *authService) RefreshToken(refreshToken string) (token.Token, error) {
 	return token, nil
 }
 
-func (s *authService) VerifyToken(accessToken string) (string, error) {
+func (s *authService) VerifyToken(accessToken string) (user.User, error) {
 	verifiedToken, err := s.keycloakClient.VerifyToken(accessToken)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	sub, err := verifiedToken.Claims.GetSubject()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return sub, nil
+	userID, err := user.NewUserID(sub)
+	if err != nil {
+		return nil, err
+	}
+
+	return user.NewUser(userID), nil
 }
 
 func (s *authService) RevokeToken(refreshToken string) error {
