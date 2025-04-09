@@ -1,4 +1,4 @@
-FROM golang:1.23
+FROM golang:1.24
 WORKDIR /work
 RUN apt-get update && apt-get install -y wget unzip && \
     wget https://github.com/protocolbuffers/protobuf/releases/download/v27.1/protoc-27.1-linux-x86_64.zip && \
