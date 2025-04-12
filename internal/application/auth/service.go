@@ -17,7 +17,7 @@ type authService struct {
 	keycloakClient api.KeycloakClient
 }
 
-func NewTokenService(keycloakClient api.KeycloakClient) AuthService {
+func NewAuthService(keycloakClient api.KeycloakClient) AuthService {
 	return &authService{keycloakClient: keycloakClient}
 }
 

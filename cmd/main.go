@@ -29,7 +29,7 @@ func main() {
 		getEnv("KEYCLOAK_REALM"),
 	)
 
-	authService := application_auth.NewTokenService(keycloakClient)
+	authService := application_auth.NewAuthService(keycloakClient)
 
 	tokenHandler := interface_auth.NewAuthHandler(authService)
 
