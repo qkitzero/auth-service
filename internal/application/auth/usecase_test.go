@@ -27,7 +27,7 @@ func TestExchangeCodeForToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockKeycloakClient := mocks.NewMockKeycloakClient(ctrl)
-			authService := NewAuthService(mockKeycloakClient)
+			authUsecase := NewAuthUsecase(mockKeycloakClient)
 			tokenResponse := &api.TokenResponse{
 				AccessToken:      "accessToken",
 				RefreshToken:     "refreshToken",
@@ -37,7 +37,7 @@ func TestExchangeCodeForToken(t *testing.T) {
 			if tt.expectExchangeCodeForToken {
 				mockKeycloakClient.EXPECT().ExchangeCodeForToken(gomock.Any()).Return(tokenResponse, tt.exchangeCodeForTokenErr)
 			}
-			_, err := authService.ExchangeCodeForToken(tt.code)
+			_, err := authUsecase.ExchangeCodeForToken(tt.code)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -65,7 +65,7 @@ func TestRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockKeycloakClient := mocks.NewMockKeycloakClient(ctrl)
-			authService := NewAuthService(mockKeycloakClient)
+			authUsecase := NewAuthUsecase(mockKeycloakClient)
 			tokenResponse := &api.TokenResponse{
 				AccessToken:      "accessToken",
 				RefreshToken:     "refreshToken",
@@ -75,7 +75,7 @@ func TestRefreshToken(t *testing.T) {
 			if tt.expectRefreshToken {
 				mockKeycloakClient.EXPECT().RefreshToken(gomock.Any()).Return(tokenResponse, tt.refreshTokenErr)
 			}
-			_, err := authService.RefreshToken(tt.refreshToken)
+			_, err := authUsecase.RefreshToken(tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -105,14 +105,14 @@ func TestVerifyToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockKeycloakClient := mocks.NewMockKeycloakClient(ctrl)
-			authService := NewAuthService(mockKeycloakClient)
+			authUsecase := NewAuthUsecase(mockKeycloakClient)
 			jwtToken := &jwt.Token{
 				Claims: tt.claims,
 			}
 			if tt.expectVerifyToken {
 				mockKeycloakClient.EXPECT().VerifyToken(gomock.Any()).Return(jwtToken, tt.verifyTokenErr)
 			}
-			_, err := authService.VerifyToken(tt.accessToken)
+			_, err := authUsecase.VerifyToken(tt.accessToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -139,11 +139,11 @@ func TestRevokeToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			mockKeycloakClient := mocks.NewMockKeycloakClient(ctrl)
-			authService := NewAuthService(mockKeycloakClient)
+			authUsecase := NewAuthUsecase(mockKeycloakClient)
 			if tt.expectRevokeToken {
 				mockKeycloakClient.EXPECT().RevokeToken(gomock.Any()).Return(tt.revokeTokenErr)
 			}
-			err := authService.RevokeToken(tt.refreshToken)
+			err := authUsecase.RevokeToken(tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
