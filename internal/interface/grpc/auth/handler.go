@@ -9,20 +9,20 @@ import (
 
 type AuthHandler struct {
 	pb.UnimplementedAuthServiceServer
-	authService auth.AuthService
+	authUsecase auth.AuthUsecase
 }
 
-func NewAuthHandler(authService auth.AuthService) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authUsecase auth.AuthUsecase) *AuthHandler {
+	return &AuthHandler{authUsecase: authUsecase}
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	token, err := h.authService.ExchangeCodeForToken(req.GetCode())
+	token, err := h.authUsecase.ExchangeCodeForToken(req.GetCode())
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := h.authService.VerifyToken(token.AccessToken())
+	user, err := h.authUsecase.VerifyToken(token.AccessToken())
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 }
 
 func (h *AuthHandler) VerifyToken(ctx context.Context, req *pb.VerifyTokenRequest) (*pb.VerifyTokenResponse, error) {
-	user, err := h.authService.VerifyToken(req.GetAccessToken())
+	user, err := h.authUsecase.VerifyToken(req.GetAccessToken())
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *pb.VerifyTokenReques
 }
 
 func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
-	token, err := h.authService.RefreshToken(req.GetRefreshToken())
+	token, err := h.authUsecase.RefreshToken(req.GetRefreshToken())
 	if err != nil {
 		return nil, err
 	}
@@ -58,12 +58,12 @@ func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequ
 }
 
 func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.LogoutResponse, error) {
-	user, err := h.authService.VerifyToken(req.GetAccessToken())
+	user, err := h.authUsecase.VerifyToken(req.GetAccessToken())
 	if err != nil {
 		return nil, err
 	}
 
-	if err := h.authService.RevokeToken(req.GetRefreshToken()); err != nil {
+	if err := h.authUsecase.RevokeToken(req.GetRefreshToken()); err != nil {
 		return nil, err
 	}
 

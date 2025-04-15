@@ -29,9 +29,9 @@ func main() {
 		getEnv("KEYCLOAK_REALM"),
 	)
 
-	authService := application_auth.NewAuthService(keycloakClient)
+	authUsecase := application_auth.NewAuthUsecase(keycloakClient)
 
-	tokenHandler := interface_auth.NewAuthHandler(authService)
+	tokenHandler := interface_auth.NewAuthHandler(authUsecase)
 
 	auth_pb.RegisterAuthServiceServer(server, tokenHandler)
 
