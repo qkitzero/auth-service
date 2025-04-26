@@ -17,10 +17,10 @@ func TestNewUserID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewUserID(tt.id)
 			if tt.success && err != nil {
-				t.Errorf("expected no error")
+				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error")
+				t.Errorf("expected error but got nil")
 			}
 		})
 	}

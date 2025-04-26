@@ -6,28 +6,17 @@ import (
 	"net"
 	"os"
 
-	application_auth "github.com/qkitzero/auth/internal/application/auth"
-	application_user "github.com/qkitzero/auth/internal/application/user"
-	"github.com/qkitzero/auth/internal/infrastructure/api"
-	"github.com/qkitzero/auth/internal/infrastructure/db"
-	infrastructure_user "github.com/qkitzero/auth/internal/infrastructure/persistence/user"
-	interface_auth "github.com/qkitzero/auth/internal/interface/grpc/auth"
-	"github.com/qkitzero/auth/pb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
+
+	authv1 "github.com/qkitzero/auth/gen/go/proto/auth/v1"
+	application_auth "github.com/qkitzero/auth/internal/application/auth"
+	"github.com/qkitzero/auth/internal/infrastructure/api"
+	interface_auth "github.com/qkitzero/auth/internal/interface/grpc/auth"
 )
 
 func main() {
-	db, err := db.Init(
-		getEnv("DB_USER"),
-		getEnv("DB_PASSWORD"),
-		getEnv("DB_HOST"),
-		getEnv("DB_PORT"),
-		getEnv("DB_NAME"),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	listener, err := net.Listen("tcp", ":"+getEnv("PORT"))
 	if err != nil {
 		log.Fatal(err)
@@ -42,14 +31,16 @@ func main() {
 		getEnv("KEYCLOAK_CLIENT_REDIRECT_URI"),
 		getEnv("KEYCLOAK_REALM"),
 	)
-	userRepository := infrastructure_user.NewUserRepository(db)
 
-	authService := application_auth.NewTokenService(keycloakClient)
-	userService := application_user.NewUserService(userRepository)
+	authUsecase := application_auth.NewAuthUsecase(keycloakClient)
 
-	tokenHandler := interface_auth.NewAuthHandler(authService, userService)
+	healthServer := health.NewServer()
+	tokenHandler := interface_auth.NewAuthHandler(authUsecase)
 
-	pb.RegisterAuthServiceServer(server, tokenHandler)
+	grpc_health_v1.RegisterHealthServer(server, healthServer)
+	authv1.RegisterAuthServiceServer(server, tokenHandler)
+
+	healthServer.SetServingStatus("auth", grpc_health_v1.HealthCheckResponse_SERVING)
 
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err)

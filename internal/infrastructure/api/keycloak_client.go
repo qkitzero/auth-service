@@ -14,7 +14,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type KeycloakClient struct {
+type KeycloakClient interface {
+	ExchangeCodeForToken(code string) (*TokenResponse, error)
+	RefreshToken(refreshToken string) (*TokenResponse, error)
+	VerifyToken(accessToken string) (*jwt.Token, error)
+	RevokeToken(refreshToken string) error
+}
+
+type keycloakClient struct {
 	BaseURL      string
 	ClientID     string
 	ClientSecret string
@@ -25,7 +32,7 @@ type KeycloakClient struct {
 
 func NewKeycloakClient(baseURL, clientID, clientSecret, redirectURI, realm string) KeycloakClient {
 	httpClient := http.Client{Timeout: 10 * time.Second}
-	return KeycloakClient{
+	return &keycloakClient{
 		BaseURL:      baseURL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -42,7 +49,7 @@ type TokenResponse struct {
 	RefreshExpiresIn int    `json:"refresh_expires_in"`
 }
 
-func (c KeycloakClient) ExchangeCodeForToken(code string) (*TokenResponse, error) {
+func (c *keycloakClient) ExchangeCodeForToken(code string) (*TokenResponse, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
 
 	data := url.Values{}
@@ -76,7 +83,7 @@ func (c KeycloakClient) ExchangeCodeForToken(code string) (*TokenResponse, error
 	return &tokenResponse, nil
 }
 
-func (c KeycloakClient) RefreshToken(refreshToken string) (*TokenResponse, error) {
+func (c *keycloakClient) RefreshToken(refreshToken string) (*TokenResponse, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
 
 	data := url.Values{}
@@ -120,7 +127,7 @@ type PublicKey struct {
 	E   string `json:"e"`
 }
 
-func (c KeycloakClient) VerifyToken(accessToken string) (*jwt.Token, error) {
+func (c *keycloakClient) VerifyToken(accessToken string) (*jwt.Token, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", c.BaseURL, c.Realm)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -196,7 +203,7 @@ func (c KeycloakClient) VerifyToken(accessToken string) (*jwt.Token, error) {
 	return parsedToken, nil
 }
 
-func (c KeycloakClient) RevokeToken(refreshToken string) error {
+func (c *keycloakClient) RevokeToken(refreshToken string) error {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", c.BaseURL, c.Realm)
 
 	data := url.Values{}

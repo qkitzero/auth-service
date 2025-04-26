@@ -3,6 +3,8 @@
 - Keycloak
 - Microservices architecture
 - gRPC
-- DDD
+- gRPC Gateway
+- Buf
+- Clean Architecture
 - Docker
 - Test
