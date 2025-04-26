@@ -6,11 +6,14 @@ import (
 	"net"
 	"os"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
+
+	authv1 "github.com/qkitzero/auth/gen/go/proto/auth/v1"
 	application_auth "github.com/qkitzero/auth/internal/application/auth"
 	"github.com/qkitzero/auth/internal/infrastructure/api"
 	interface_auth "github.com/qkitzero/auth/internal/interface/grpc/auth"
-	auth_pb "github.com/qkitzero/auth/pb"
-	"google.golang.org/grpc"
 )
 
 func main() {
@@ -31,9 +34,13 @@ func main() {
 
 	authUsecase := application_auth.NewAuthUsecase(keycloakClient)
 
+	healthServer := health.NewServer()
 	tokenHandler := interface_auth.NewAuthHandler(authUsecase)
 
-	auth_pb.RegisterAuthServiceServer(server, tokenHandler)
+	grpc_health_v1.RegisterHealthServer(server, healthServer)
+	authv1.RegisterAuthServiceServer(server, tokenHandler)
+
+	healthServer.SetServingStatus("auth", grpc_health_v1.HealthCheckResponse_SERVING)
 
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err)
