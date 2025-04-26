@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	"go.uber.org/mock/gomock"
+
+	authv1 "github.com/qkitzero/auth/gen/go/proto/auth/v1"
 	"github.com/qkitzero/auth/internal/domain/user"
 	mocksAuthUsecase "github.com/qkitzero/auth/mocks/application/auth"
 	mocksToken "github.com/qkitzero/auth/mocks/domain/token"
 	mocksUser "github.com/qkitzero/auth/mocks/domain/user"
-	"github.com/qkitzero/auth/pb"
-	"go.uber.org/mock/gomock"
 )
 
 func TestLogin(t *testing.T) {
@@ -44,7 +45,7 @@ func TestLogin(t *testing.T) {
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
 			ctx := context.Background()
-			req := &pb.LoginRequest{
+			req := &authv1.LoginRequest{
 				Code: tt.code,
 			}
 
@@ -84,7 +85,7 @@ func TestVerifyToken(t *testing.T) {
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
 			ctx := context.Background()
-			req := &pb.VerifyTokenRequest{
+			req := &authv1.VerifyTokenRequest{
 				AccessToken: tt.accessToken,
 			}
 
@@ -124,7 +125,7 @@ func TestRefreshToken(t *testing.T) {
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
 			ctx := context.Background()
-			req := &pb.RefreshTokenRequest{
+			req := &authv1.RefreshTokenRequest{
 				RefreshToken: tt.refreshToken,
 			}
 
@@ -168,7 +169,7 @@ func TestLogout(t *testing.T) {
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
 			ctx := context.Background()
-			req := &pb.LogoutRequest{
+			req := &authv1.LogoutRequest{
 				AccessToken:  tt.accessToken,
 				RefreshToken: tt.refreshToken,
 			}
