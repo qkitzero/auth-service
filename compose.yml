@@ -63,13 +63,18 @@ services:
     volumes:
       - keycloak-db-data:/var/lib/mysql
 
-  protoc:
+  auth-grpc-gateway:
     build:
       context: .
-      dockerfile: ./build/protoc/Dockerfile
-    volumes:
-      - .:/work
-    command: /bin/sh -c "protoc --go_out=. --go-grpc_out=. ./proto/*.proto"
+      dockerfile: ./build/gateway/Dockerfile
+    container_name: auth-grpc-gateway
+    restart: always
+    environment:
+      - GRPC_GATEWAY_PORT=${GRPC_GATEWAY_PORT}
+      - SERVER_HOST=${SERVER_HOST}
+      - SERVER_PORT=${SERVER_PORT}
+    ports:
+      - "${GRPC_GATEWAY_EXTERNAL_PORT}:${GRPC_GATEWAY_PORT}"
 
 volumes:
   keycloak-db-data:

@@ -3,12 +3,12 @@ package auth
 import (
 	"context"
 
+	authv1 "github.com/qkitzero/auth/gen/go/proto/auth/v1"
 	"github.com/qkitzero/auth/internal/application/auth"
-	"github.com/qkitzero/auth/pb"
 )
 
 type AuthHandler struct {
-	pb.UnimplementedAuthServiceServer
+	authv1.UnimplementedAuthServiceServer
 	authUsecase auth.AuthUsecase
 }
 
@@ -16,7 +16,7 @@ func NewAuthHandler(authUsecase auth.AuthUsecase) *AuthHandler {
 	return &AuthHandler{authUsecase: authUsecase}
 }
 
-func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
 	token, err := h.authUsecase.ExchangeCodeForToken(req.GetCode())
 	if err != nil {
 		return nil, err
@@ -27,37 +27,37 @@ func (h *AuthHandler) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Logi
 		return nil, err
 	}
 
-	return &pb.LoginResponse{
+	return &authv1.LoginResponse{
 		UserId:       user.ID().String(),
 		AccessToken:  token.AccessToken(),
 		RefreshToken: token.RefreshToken(),
 	}, nil
 }
 
-func (h *AuthHandler) VerifyToken(ctx context.Context, req *pb.VerifyTokenRequest) (*pb.VerifyTokenResponse, error) {
+func (h *AuthHandler) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRequest) (*authv1.VerifyTokenResponse, error) {
 	user, err := h.authUsecase.VerifyToken(req.GetAccessToken())
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.VerifyTokenResponse{
+	return &authv1.VerifyTokenResponse{
 		UserId: user.ID().String(),
 	}, nil
 }
 
-func (h *AuthHandler) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
+func (h *AuthHandler) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.RefreshTokenResponse, error) {
 	token, err := h.authUsecase.RefreshToken(req.GetRefreshToken())
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.RefreshTokenResponse{
+	return &authv1.RefreshTokenResponse{
 		AccessToken:  token.AccessToken(),
 		RefreshToken: token.RefreshToken(),
 	}, nil
 }
 
-func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.LogoutResponse, error) {
+func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
 	user, err := h.authUsecase.VerifyToken(req.GetAccessToken())
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (h *AuthHandler) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb.Lo
 		return nil, err
 	}
 
-	return &pb.LogoutResponse{
+	return &authv1.LogoutResponse{
 		UserId: user.ID().String(),
 	}, nil
 }
