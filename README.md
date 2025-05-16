@@ -1,7 +1,7 @@
 # Auth Service
 
 - Keycloak
-- Microservices architecture
+- Microservices Architecture
 - gRPC
 - gRPC Gateway
 - Buf

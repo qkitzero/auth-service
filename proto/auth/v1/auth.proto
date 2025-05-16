@@ -1,60 +1,60 @@
 syntax = "proto3";
 
-package auth;
-
-option go_package = "./pb";
+package auth.v1;
 
 import "google/api/annotations.proto";
 
+option go_package = "./pb";
+
 service AuthService {
-	rpc Login (LoginRequest) returns (LoginResponse){
-		option (google.api.http) = {
-			post: "/v1/login"
-			body: "*"
-		};
-	};
-	rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);
-	rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
-	rpc Logout (LogoutRequest) returns (LogoutResponse){
-		option (google.api.http) = {
-			post: "/v1/logout"
-			body: "*"
-		};
-	};
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/login"
+      body: "*"
+    };
+  }
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (google.api.http) = {
+      post: "/v1/logout"
+      body: "*"
+    };
+  }
 }
 
 message LoginRequest {
-	string code = 1;
+  string code = 1;
 }
 
 message LoginResponse {
-	string user_id = 1;
-	string access_token = 2;
-	string refresh_token = 3;
+  string user_id = 1;
+  string access_token = 2;
+  string refresh_token = 3;
 }
 
 message VerifyTokenRequest {
-	string access_token = 1;
+  string access_token = 1;
 }
 
 message VerifyTokenResponse {
-	string user_id = 1;
+  string user_id = 1;
 }
 
 message RefreshTokenRequest {
-	string refresh_token = 1;
+  string refresh_token = 1;
 }
 
 message RefreshTokenResponse {
-	string access_token = 1;
-	string refresh_token = 2;
+  string access_token = 1;
+  string refresh_token = 2;
 }
 
 message LogoutRequest {
-	string access_token = 1;
-	string refresh_token = 2;
+  string access_token = 1;
+  string refresh_token = 2;
 }
 
 message LogoutResponse {
-	string user_id = 1;
+  string user_id = 1;
 }
