@@ -9,7 +9,7 @@ proto-gen:
 
 MOCK_GEN=go run go.uber.org/mock/mockgen@v0.5.0
 
-mockgen:
+mock-gen:
 	$(MOCK_GEN) -source=internal/domain/user/user.go -destination=mocks/domain/user/mock_user.go -package=mocks
 	$(MOCK_GEN) -source=internal/domain/token/token.go -destination=mocks/domain/token/mock_token.go -package=mocks
 	$(MOCK_GEN) -source=internal/application/auth/usecase.go -destination=mocks/application/auth/mock_usecase.go -package=mocks
