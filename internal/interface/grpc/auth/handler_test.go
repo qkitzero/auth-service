@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc/metadata"
 
-	authv1 "github.com/qkitzero/auth/gen/go/proto/auth/v1"
+	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
 	"github.com/qkitzero/auth/internal/domain/user"
 	mocksAuthUsecase "github.com/qkitzero/auth/mocks/application/auth"
 	mocksToken "github.com/qkitzero/auth/mocks/domain/token"
@@ -84,10 +85,9 @@ func TestVerifyToken(t *testing.T) {
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
-			ctx := context.Background()
-			req := &authv1.VerifyTokenRequest{
-				AccessToken: tt.accessToken,
-			}
+			md := metadata.Pairs("authorization", "Bearer "+tt.accessToken)
+			ctx := metadata.NewIncomingContext(context.Background(), md)
+			req := &authv1.VerifyTokenRequest{}
 
 			_, err := authHandler.VerifyToken(ctx, req)
 			if tt.success && err != nil {
@@ -124,10 +124,9 @@ func TestRefreshToken(t *testing.T) {
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
-			ctx := context.Background()
-			req := &authv1.RefreshTokenRequest{
-				RefreshToken: tt.refreshToken,
-			}
+			md := metadata.Pairs("refresh-token", tt.refreshToken)
+			ctx := metadata.NewIncomingContext(context.Background(), md)
+			req := &authv1.RefreshTokenRequest{}
 
 			_, err := authHandler.RefreshToken(ctx, req)
 			if tt.success && err != nil {
@@ -145,14 +144,11 @@ func TestLogout(t *testing.T) {
 	tests := []struct {
 		name           string
 		success        bool
-		accessToken    string
 		refreshToken   string
-		verifyTokenErr error
 		revokeTokenErr error
 	}{
-		{"success logout", true, "accessToken", "refreshToken", nil, nil},
-		{"failure verify token", false, "accessToken", "refreshToken", fmt.Errorf("refresh token error"), nil},
-		{"failure revoke token", false, "accessToken", "refreshToken", nil, fmt.Errorf("revoke token error")},
+		{"success logout", true, "refreshToken", nil},
+		{"failure revoke token", false, "refreshToken", fmt.Errorf("revoke token error")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -161,18 +157,15 @@ func TestLogout(t *testing.T) {
 
 			mockAuthUsecase := mocksAuthUsecase.NewMockAuthUsecase(ctrl)
 			mockUser := mocksUser.NewMockUser(ctrl)
-			mockAuthUsecase.EXPECT().VerifyToken(tt.accessToken).Return(mockUser, tt.verifyTokenErr).AnyTimes()
 			mockAuthUsecase.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
 			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
 			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
-			ctx := context.Background()
-			req := &authv1.LogoutRequest{
-				AccessToken:  tt.accessToken,
-				RefreshToken: tt.refreshToken,
-			}
+			md := metadata.Pairs("refresh-token", tt.refreshToken)
+			ctx := metadata.NewIncomingContext(context.Background(), md)
+			req := &authv1.LogoutRequest{}
 
 			_, err := authHandler.Logout(ctx, req)
 			if tt.success && err != nil {

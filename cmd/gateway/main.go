@@ -10,7 +10,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
-	authv1 "github.com/qkitzero/auth/gen/go/proto/auth/v1"
+	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
+	"github.com/qkitzero/auth/internal/interface/grpc/gateway"
 	"github.com/qkitzero/auth/util"
 )
 
@@ -33,6 +34,8 @@ func main() {
 
 	mux := runtime.NewServeMux(
 		runtime.WithHealthzEndpoint(healthClient),
+		runtime.WithForwardResponseOption(gateway.SetRefreshTokenCookie),
+		runtime.WithMetadata(gateway.CustomMetadataAnnotator),
 	)
 	endpoint := util.GetEnv("SERVER_HOST") + ":" + util.GetEnv("SERVER_PORT")
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}

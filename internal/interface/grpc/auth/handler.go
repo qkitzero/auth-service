@@ -2,9 +2,13 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"strings"
 
-	authv1 "github.com/qkitzero/auth/gen/go/proto/auth/v1"
+	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
 	"github.com/qkitzero/auth/internal/application/auth"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type AuthHandler struct {
@@ -27,15 +31,33 @@ func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 		return nil, err
 	}
 
+	grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken()))
+
 	return &authv1.LoginResponse{
-		UserId:       user.ID().String(),
-		AccessToken:  token.AccessToken(),
-		RefreshToken: token.RefreshToken(),
+		UserId:      user.ID().String(),
+		AccessToken: token.AccessToken(),
 	}, nil
 }
 
 func (h *AuthHandler) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRequest) (*authv1.VerifyTokenResponse, error) {
-	user, err := h.authUsecase.VerifyToken(req.GetAccessToken())
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("metadata is missing")
+	}
+
+	authorizations := md.Get("authorization")
+	if len(authorizations) == 0 {
+		return nil, errors.New("authorization is missing")
+	}
+
+	token := authorizations[0]
+	if !strings.HasPrefix(token, "Bearer ") {
+		return nil, errors.New("authorization header must start with 'Bearer '")
+	}
+
+	accessToken := strings.TrimPrefix(token, "Bearer ")
+
+	user, err := h.authUsecase.VerifyToken(accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -46,28 +68,46 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRe
 }
 
 func (h *AuthHandler) RefreshToken(ctx context.Context, req *authv1.RefreshTokenRequest) (*authv1.RefreshTokenResponse, error) {
-	token, err := h.authUsecase.RefreshToken(req.GetRefreshToken())
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("metadata is missing")
+	}
+
+	refreshTokens := md.Get("refresh-token")
+	if len(refreshTokens) == 0 {
+		return nil, errors.New("refresh token is missing")
+	}
+
+	refreshToken := refreshTokens[0]
+
+	token, err := h.authUsecase.RefreshToken(refreshToken)
 	if err != nil {
 		return nil, err
 	}
 
+	grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken()))
+
 	return &authv1.RefreshTokenResponse{
-		AccessToken:  token.AccessToken(),
-		RefreshToken: token.RefreshToken(),
+		AccessToken: token.AccessToken(),
 	}, nil
 }
 
 func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
-	user, err := h.authUsecase.VerifyToken(req.GetAccessToken())
-	if err != nil {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("metadata is missing")
+	}
+
+	refreshTokens := md.Get("refresh-token")
+	if len(refreshTokens) == 0 {
+		return nil, errors.New("refresh token is missing")
+	}
+
+	refreshToken := refreshTokens[0]
+
+	if err := h.authUsecase.RevokeToken(refreshToken); err != nil {
 		return nil, err
 	}
 
-	if err := h.authUsecase.RevokeToken(req.GetRefreshToken()); err != nil {
-		return nil, err
-	}
-
-	return &authv1.LogoutResponse{
-		UserId: user.ID().String(),
-	}, nil
+	return &authv1.LogoutResponse{}, nil
 }
