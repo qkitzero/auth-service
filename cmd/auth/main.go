@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
-	authv1 "github.com/qkitzero/auth/gen/go/proto/auth/v1"
+	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
 	application_auth "github.com/qkitzero/auth/internal/application/auth"
 	"github.com/qkitzero/auth/internal/infrastructure/api"
 	interface_auth "github.com/qkitzero/auth/internal/interface/grpc/auth"
