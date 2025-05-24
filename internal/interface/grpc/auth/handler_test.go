@@ -20,13 +20,35 @@ func TestLogin(t *testing.T) {
 	tests := []struct {
 		name                    string
 		success                 bool
+		ctx                     context.Context
 		code                    string
 		exchangeCodeForTokenErr error
 		verifyTokenErr          error
 	}{
-		{"success login", true, "code", nil, nil},
-		{"failure exchange code for token error", false, "code", fmt.Errorf("exchange code for token error"), nil},
-		{"failure verify token error", false, "code", nil, fmt.Errorf("verify token error")},
+		{
+			name:                    "success login",
+			success:                 true,
+			ctx:                     context.Background(),
+			code:                    "code",
+			exchangeCodeForTokenErr: nil,
+			verifyTokenErr:          nil,
+		},
+		{
+			name:                    "failure exchange code for token error",
+			success:                 false,
+			ctx:                     context.Background(),
+			code:                    "code",
+			exchangeCodeForTokenErr: fmt.Errorf("exchange code for token error"),
+			verifyTokenErr:          nil,
+		},
+		{
+			name:                    "failure verify token error",
+			success:                 false,
+			ctx:                     context.Background(),
+			code:                    "code",
+			exchangeCodeForTokenErr: nil,
+			verifyTokenErr:          fmt.Errorf("verify token error"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -45,12 +67,11 @@ func TestLogin(t *testing.T) {
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
-			ctx := context.Background()
 			req := &authv1.LoginRequest{
 				Code: tt.code,
 			}
 
-			_, err := authHandler.Login(ctx, req)
+			_, err := authHandler.Login(tt.ctx, req)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -63,14 +84,49 @@ func TestLogin(t *testing.T) {
 
 func TestVerifyToken(t *testing.T) {
 	t.Parallel()
+	accessToken := "accessToken"
 	tests := []struct {
 		name           string
 		success        bool
+		ctx            context.Context
 		accessToken    string
 		verifyTokenErr error
 	}{
-		{"success verify token", true, "accessToken", nil},
-		{"failure verify token error", false, "accessToken", fmt.Errorf("verify token error")},
+		{
+			name:           "success verify token",
+			success:        true,
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)),
+			accessToken:    accessToken,
+			verifyTokenErr: nil,
+		},
+		{
+			name:           "failure missing metadata",
+			success:        false,
+			ctx:            context.Background(),
+			accessToken:    accessToken,
+			verifyTokenErr: nil,
+		},
+		{
+			name:           "failure missing authorization",
+			success:        false,
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.MD{}),
+			accessToken:    accessToken,
+			verifyTokenErr: nil,
+		},
+		{
+			name:           "failure missing bearer",
+			success:        false,
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", accessToken)),
+			accessToken:    accessToken,
+			verifyTokenErr: nil,
+		},
+		{
+			name:           "failure verify token error",
+			success:        false,
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)),
+			accessToken:    accessToken,
+			verifyTokenErr: fmt.Errorf("verify token error"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -85,11 +141,9 @@ func TestVerifyToken(t *testing.T) {
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
-			md := metadata.Pairs("authorization", "Bearer "+tt.accessToken)
-			ctx := metadata.NewIncomingContext(context.Background(), md)
 			req := &authv1.VerifyTokenRequest{}
 
-			_, err := authHandler.VerifyToken(ctx, req)
+			_, err := authHandler.VerifyToken(tt.ctx, req)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -102,14 +156,42 @@ func TestVerifyToken(t *testing.T) {
 
 func TestRefreshToken(t *testing.T) {
 	t.Parallel()
+	refreshToken := "refreshToken"
 	tests := []struct {
 		name            string
 		success         bool
+		ctx             context.Context
 		refreshToken    string
 		refreshTokenErr error
 	}{
-		{"success refresh token", true, "refreshToken", nil},
-		{"failure refresh token", false, "refreshToken", fmt.Errorf("refresh token error")},
+		{
+			name:            "success refresh token",
+			success:         true,
+			ctx:             metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
+			refreshToken:    refreshToken,
+			refreshTokenErr: nil,
+		},
+		{
+			name:            "failure missing metadata",
+			success:         false,
+			ctx:             context.Background(),
+			refreshToken:    refreshToken,
+			refreshTokenErr: nil,
+		},
+		{
+			name:            "failure missing refresh token",
+			success:         false,
+			ctx:             metadata.NewIncomingContext(context.Background(), metadata.MD{}),
+			refreshToken:    refreshToken,
+			refreshTokenErr: nil,
+		},
+		{
+			name:            "failure refresh token",
+			success:         false,
+			ctx:             metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
+			refreshToken:    refreshToken,
+			refreshTokenErr: fmt.Errorf("refresh token error"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -124,11 +206,9 @@ func TestRefreshToken(t *testing.T) {
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
-			md := metadata.Pairs("refresh-token", tt.refreshToken)
-			ctx := metadata.NewIncomingContext(context.Background(), md)
 			req := &authv1.RefreshTokenRequest{}
 
-			_, err := authHandler.RefreshToken(ctx, req)
+			_, err := authHandler.RefreshToken(tt.ctx, req)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -141,14 +221,42 @@ func TestRefreshToken(t *testing.T) {
 
 func TestLogout(t *testing.T) {
 	t.Parallel()
+	refreshToken := "refreshToken"
 	tests := []struct {
 		name           string
 		success        bool
+		ctx            context.Context
 		refreshToken   string
 		revokeTokenErr error
 	}{
-		{"success logout", true, "refreshToken", nil},
-		{"failure revoke token", false, "refreshToken", fmt.Errorf("revoke token error")},
+		{
+			name:           "success logout",
+			success:        true,
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
+			refreshToken:   refreshToken,
+			revokeTokenErr: nil,
+		},
+		{
+			name:           "failure missing metadata",
+			success:        false,
+			ctx:            context.Background(),
+			refreshToken:   refreshToken,
+			revokeTokenErr: nil,
+		},
+		{
+			name:           "failure missing refresh token",
+			success:        false,
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.MD{}),
+			refreshToken:   refreshToken,
+			revokeTokenErr: nil,
+		},
+		{
+			name:           "failure revoke token",
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
+			success:        false,
+			refreshToken:   refreshToken,
+			revokeTokenErr: fmt.Errorf("revoke token error"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -163,11 +271,9 @@ func TestLogout(t *testing.T) {
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
-			md := metadata.Pairs("refresh-token", tt.refreshToken)
-			ctx := metadata.NewIncomingContext(context.Background(), md)
 			req := &authv1.LogoutRequest{}
 
-			_, err := authHandler.Logout(ctx, req)
+			_, err := authHandler.Logout(tt.ctx, req)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
