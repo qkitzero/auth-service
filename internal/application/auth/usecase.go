@@ -27,9 +27,7 @@ func (s *authUsecase) ExchangeCodeForToken(code string) (token.Token, error) {
 		return nil, err
 	}
 
-	token := token.NewToken(tokenResponse.AccessToken, tokenResponse.RefreshToken)
-
-	return token, nil
+	return token.NewToken(tokenResponse.AccessToken, tokenResponse.RefreshToken)
 }
 
 func (s *authUsecase) RefreshToken(refreshToken string) (token.Token, error) {
@@ -38,9 +36,7 @@ func (s *authUsecase) RefreshToken(refreshToken string) (token.Token, error) {
 		return nil, err
 	}
 
-	token := token.NewToken(tokenResponse.AccessToken, tokenResponse.RefreshToken)
-
-	return token, nil
+	return token.NewToken(tokenResponse.AccessToken, tokenResponse.RefreshToken)
 }
 
 func (s *authUsecase) VerifyToken(accessToken string) (user.User, error) {

@@ -13,8 +13,18 @@ service AuthService {
       body: "*"
     };
   }
-  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
-  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/verify"
+      body: "*"
+    };
+  }
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/refresh"
+      body: "*"
+    };
+  }
   rpc Logout(LogoutRequest) returns (LogoutResponse) {
     option (google.api.http) = {
       post: "/v1/logout"
@@ -30,31 +40,20 @@ message LoginRequest {
 message LoginResponse {
   string user_id = 1;
   string access_token = 2;
-  string refresh_token = 3;
 }
 
-message VerifyTokenRequest {
-  string access_token = 1;
-}
+message VerifyTokenRequest {}
 
 message VerifyTokenResponse {
   string user_id = 1;
 }
 
-message RefreshTokenRequest {
-  string refresh_token = 1;
-}
+message RefreshTokenRequest {}
 
 message RefreshTokenResponse {
   string access_token = 1;
-  string refresh_token = 2;
 }
 
-message LogoutRequest {
-  string access_token = 1;
-  string refresh_token = 2;
-}
+message LogoutRequest {}
 
-message LogoutResponse {
-  string user_id = 1;
-}
+message LogoutResponse {}

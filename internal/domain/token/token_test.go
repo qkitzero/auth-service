@@ -12,11 +12,19 @@ func TestNewToken(t *testing.T) {
 		accessToken  string
 		refreshToken string
 	}{
-		{"success new token", true, "", ""},
+		{"success new token", true, "accessToken", "refreshToken"},
+		{"failure empty access token", false, "", "refreshToken"},
+		{"failure empty refresh token", false, "accessToken", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			token := NewToken(tt.accessToken, tt.refreshToken)
+			token, err := NewToken(tt.accessToken, tt.refreshToken)
+			if tt.success && err != nil {
+				t.Errorf("expected no error, but got %v", err)
+			}
+			if !tt.success && err == nil {
+				t.Errorf("expected error but got nil")
+			}
 			if tt.success && token == nil {
 				t.Errorf("NewToken() = nil")
 			}
