@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -14,10 +12,11 @@ import (
 	application_auth "github.com/qkitzero/auth/internal/application/auth"
 	"github.com/qkitzero/auth/internal/infrastructure/api"
 	interface_auth "github.com/qkitzero/auth/internal/interface/grpc/auth"
+	"github.com/qkitzero/auth/util"
 )
 
 func main() {
-	listener, err := net.Listen("tcp", ":"+getEnv("PORT"))
+	listener, err := net.Listen("tcp", ":"+util.GetEnv("PORT", ""))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,11 +24,11 @@ func main() {
 	server := grpc.NewServer()
 
 	keycloakClient := api.NewKeycloakClient(
-		getEnv("KEYCLOAK_SERVER_BASE_URL"),
-		getEnv("KEYCLOAK_CLIENT_ID"),
-		getEnv("KEYCLOAK_CLIENT_SECRET"),
-		getEnv("KEYCLOAK_CLIENT_REDIRECT_URI"),
-		getEnv("KEYCLOAK_REALM"),
+		util.GetEnv("KEYCLOAK_SERVER_BASE_URL", ""),
+		util.GetEnv("KEYCLOAK_CLIENT_ID", ""),
+		util.GetEnv("KEYCLOAK_CLIENT_SECRET", ""),
+		util.GetEnv("KEYCLOAK_CLIENT_REDIRECT_URI", ""),
+		util.GetEnv("KEYCLOAK_REALM", ""),
 	)
 
 	authUsecase := application_auth.NewAuthUsecase(keycloakClient)
@@ -45,12 +44,4 @@ func main() {
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func getEnv(key string) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		log.Fatal(fmt.Sprintf("missing required environment variable: %s", key))
-	}
-	return value
 }
