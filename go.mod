@@ -4,7 +4,6 @@ go 1.24.3
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3
 	go.uber.org/mock v0.5.1
 	google.golang.org/genproto/googleapis/api v0.0.0-20250303144028-a0af3efb3deb
