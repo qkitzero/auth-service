@@ -13,7 +13,8 @@ mock-gen:
 	$(MOCK_GEN) -source=internal/domain/user/user.go -destination=mocks/domain/user/mock_user.go -package=mocks
 	$(MOCK_GEN) -source=internal/domain/token/token.go -destination=mocks/domain/token/mock_token.go -package=mocks
 	$(MOCK_GEN) -source=internal/application/auth/usecase.go -destination=mocks/application/auth/mock_usecase.go -package=mocks
-	$(MOCK_GEN) -source=internal/infrastructure/api/keycloak_client.go -destination=mocks/infrastructure/api/mock_keycloak_client.go -package=mocks
+	$(MOCK_GEN) -source=internal/infrastructure/api/keycloak/client.go -destination=mocks/infrastructure/api/keycloak/mock_client.go -package=mocks
+	$(MOCK_GEN) -source=internal/infrastructure/api/auth0/client.go -destination=mocks/infrastructure/api/auth0/mock_client.go -package=mocks
 
 test:
 	mkdir -p tmp
