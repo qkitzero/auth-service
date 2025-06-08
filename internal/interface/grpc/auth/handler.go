@@ -34,7 +34,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 	grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken()))
 
 	return &authv1.LoginResponse{
-		UserId:      user.ID().String(),
+		UserId:      string(user.ID()),
 		AccessToken: token.AccessToken(),
 	}, nil
 }
@@ -63,7 +63,7 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRe
 	}
 
 	return &authv1.VerifyTokenResponse{
-		UserId: user.ID().String(),
+		UserId: string(user.ID()),
 	}, nil
 }
 

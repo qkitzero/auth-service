@@ -7,11 +7,16 @@ services:
     restart: always
     environment:
       - PORT=${SERVER_CONTAINER_PORT}
-      - KEYCLOAK_SERVER_BASE_URL=${KEYCLOAK_SERVER_BASE_URL}
-      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_CLIENT_REDIRECT_URI=${KEYCLOAK_CLIENT_REDIRECT_URI}
-      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
+      - AUTH0_CALLBACK_URL=${AUTH0_CALLBACK_URL}
+      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
+      # - KEYCLOAK_SERVER_BASE_URL=${KEYCLOAK_SERVER_BASE_URL}
+      # - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      # - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      # - KEYCLOAK_CLIENT_REDIRECT_URI=${KEYCLOAK_CLIENT_REDIRECT_URI}
+      # - KEYCLOAK_REALM=${KEYCLOAK_REALM}
     ports:
       - "${SERVER_HOST_PORT}:${SERVER_CONTAINER_PORT}"
     healthcheck:
@@ -21,47 +26,47 @@ services:
       retries: 5
       start_period: 10s
 
-  keycloak-server:
-    image: quay.io/keycloak/keycloak:26.0.7
-    container_name: keycloak-server
-    restart: always
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: "http://localhost:${KEYCLOAK_SERVER_HOST_PORT}"
-      KC_DB: mysql
-      KC_DB_URL: jdbc:mysql://keycloak-db:${KEYCLOAK_DB_CONTAINER_PORT}/${KEYCLOAK_DB_NAME}
-      KC_DB_URL_DATABASE: ${KEYCLOAK_DB_NAME}
-      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-    depends_on:
-      keycloak-db:
-        condition: service_healthy
-    command: start-dev
-    ports:
-      - "${KEYCLOAK_SERVER_HOST_PORT}:${KEYCLOAK_SERVER_CONTAINER_PORT}"
-    volumes:
-      - ./keycloak/themes:/opt/keycloak/themes
+  # keycloak-server:
+  #   image: quay.io/keycloak/keycloak:26.0.7
+  #   container_name: keycloak-server
+  #   restart: always
+  #   environment:
+  #     KEYCLOAK_ADMIN: admin
+  #     KEYCLOAK_ADMIN_PASSWORD: admin
+  #     KC_HOSTNAME: "http://localhost:${KEYCLOAK_SERVER_HOST_PORT}"
+  #     KC_DB: mysql
+  #     KC_DB_URL: jdbc:mysql://keycloak-db:${KEYCLOAK_DB_CONTAINER_PORT}/${KEYCLOAK_DB_NAME}
+  #     KC_DB_URL_DATABASE: ${KEYCLOAK_DB_NAME}
+  #     KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+  #     KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+  #   depends_on:
+  #     keycloak-db:
+  #       condition: service_healthy
+  #   command: start-dev
+  #   ports:
+  #     - "${KEYCLOAK_SERVER_HOST_PORT}:${KEYCLOAK_SERVER_CONTAINER_PORT}"
+  #   volumes:
+  #     - ./keycloak/themes:/opt/keycloak/themes
 
-  keycloak-db:
-    image: mysql:8.0
-    container_name: keycloak-db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${KEYCLOAK_DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${KEYCLOAK_DB_NAME}
-      MYSQL_USER: ${KEYCLOAK_DB_USER}
-      MYSQL_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-    ports:
-      - "${KEYCLOAK_DB_HOST_PORT}:${KEYCLOAK_DB_CONTAINER_PORT}"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${KEYCLOAK_DB_USER}", "-p${KEYCLOAK_DB_PASSWORD}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
-    volumes:
-      - keycloak-db-data:/var/lib/mysql
+  # keycloak-db:
+  #   image: mysql:8.0
+  #   container_name: keycloak-db
+  #   restart: always
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${KEYCLOAK_DB_ROOT_PASSWORD}
+  #     MYSQL_DATABASE: ${KEYCLOAK_DB_NAME}
+  #     MYSQL_USER: ${KEYCLOAK_DB_USER}
+  #     MYSQL_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+  #   ports:
+  #     - "${KEYCLOAK_DB_HOST_PORT}:${KEYCLOAK_DB_CONTAINER_PORT}"
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${KEYCLOAK_DB_USER}", "-p${KEYCLOAK_DB_PASSWORD}"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 10s
+  #   volumes:
+  #     - keycloak-db-data:/var/lib/mysql
 
   auth-grpc-gateway:
     build:

@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -12,27 +10,37 @@ import (
 
 	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
 	application_auth "github.com/qkitzero/auth/internal/application/auth"
-	"github.com/qkitzero/auth/internal/infrastructure/api"
+	"github.com/qkitzero/auth/internal/infrastructure/api/auth0"
+	"github.com/qkitzero/auth/internal/infrastructure/api/keycloak"
 	interface_auth "github.com/qkitzero/auth/internal/interface/grpc/auth"
+	"github.com/qkitzero/auth/util"
 )
 
 func main() {
-	listener, err := net.Listen("tcp", ":"+getEnv("PORT"))
+	listener, err := net.Listen("tcp", ":"+util.GetEnv("PORT", ""))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	server := grpc.NewServer()
 
-	keycloakClient := api.NewKeycloakClient(
-		getEnv("KEYCLOAK_SERVER_BASE_URL"),
-		getEnv("KEYCLOAK_CLIENT_ID"),
-		getEnv("KEYCLOAK_CLIENT_SECRET"),
-		getEnv("KEYCLOAK_CLIENT_REDIRECT_URI"),
-		getEnv("KEYCLOAK_REALM"),
+	keycloakClient := keycloak.NewClient(
+		util.GetEnv("KEYCLOAK_SERVER_BASE_URL", ""),
+		util.GetEnv("KEYCLOAK_CLIENT_ID", ""),
+		util.GetEnv("KEYCLOAK_CLIENT_SECRET", ""),
+		util.GetEnv("KEYCLOAK_CLIENT_REDIRECT_URI", ""),
+		util.GetEnv("KEYCLOAK_REALM", ""),
 	)
 
-	authUsecase := application_auth.NewAuthUsecase(keycloakClient)
+	auth0Client := auth0.NewClient(
+		util.GetEnv("AUTH0_DOMAIN", ""),
+		util.GetEnv("AUTH0_CLIENT_ID", ""),
+		util.GetEnv("AUTH0_CLIENT_SECRET", ""),
+		util.GetEnv("AUTH0_CALLBACK_URL", ""),
+		util.GetEnv("AUTH0_AUDIENCE", ""),
+	)
+
+	authUsecase := application_auth.NewAuthUsecase(keycloakClient, auth0Client)
 
 	healthServer := health.NewServer()
 	tokenHandler := interface_auth.NewAuthHandler(authUsecase)
@@ -45,12 +53,4 @@ func main() {
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func getEnv(key string) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		log.Fatal(fmt.Sprintf("missing required environment variable: %s", key))
-	}
-	return value
 }
