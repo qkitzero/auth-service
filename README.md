@@ -1,6 +1,7 @@
 # Auth Service
 
 - Keycloak
+- Auth0
 - Microservices Architecture
 - gRPC
 - gRPC Gateway
