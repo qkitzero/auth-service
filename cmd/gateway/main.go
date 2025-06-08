@@ -22,7 +22,7 @@ func main() {
 
 	conn, err := grpc.DialContext(
 		ctx,
-		util.GetEnv("SERVER_HOST")+":"+util.GetEnv("SERVER_PORT"),
+		util.GetEnv("SERVER_HOST", "")+":"+util.GetEnv("SERVER_PORT", ""),
 		grpc.WithTransportCredentials(insecure.NewCredentials()), // dev
 	)
 	if err != nil {
@@ -37,14 +37,14 @@ func main() {
 		runtime.WithForwardResponseOption(gateway.SetRefreshTokenCookie),
 		runtime.WithMetadata(gateway.CustomMetadataAnnotator),
 	)
-	endpoint := util.GetEnv("SERVER_HOST") + ":" + util.GetEnv("SERVER_PORT")
+	endpoint := util.GetEnv("SERVER_HOST", "") + ":" + util.GetEnv("SERVER_PORT", "")
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
 	if err := authv1.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, endpoint, opts); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := http.ListenAndServe(":"+util.GetEnv("GRPC_GATEWAY_PORT"), mux); err != nil {
+	if err := http.ListenAndServe(":"+util.GetEnv("GRPC_GATEWAY_PORT", ""), mux); err != nil {
 		log.Fatal(err)
 	}
 }
