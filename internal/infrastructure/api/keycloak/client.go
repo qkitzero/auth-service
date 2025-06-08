@@ -1,4 +1,4 @@
-package api
+package keycloak
 
 import (
 	"bytes"
@@ -14,14 +14,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type KeycloakClient interface {
+type Client interface {
 	ExchangeCodeForToken(code string) (*TokenResponse, error)
-	RefreshToken(refreshToken string) (*TokenResponse, error)
 	VerifyToken(accessToken string) (*jwt.Token, error)
+	RefreshToken(refreshToken string) (*TokenResponse, error)
 	RevokeToken(refreshToken string) error
 }
 
-type keycloakClient struct {
+type client struct {
 	BaseURL      string
 	ClientID     string
 	ClientSecret string
@@ -30,9 +30,9 @@ type keycloakClient struct {
 	HTTPClient   *http.Client
 }
 
-func NewKeycloakClient(baseURL, clientID, clientSecret, redirectURI, realm string) KeycloakClient {
+func NewClient(baseURL, clientID, clientSecret, redirectURI, realm string) Client {
 	httpClient := http.Client{Timeout: 10 * time.Second}
-	return &keycloakClient{
+	return &client{
 		BaseURL:      baseURL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -42,14 +42,7 @@ func NewKeycloakClient(baseURL, clientID, clientSecret, redirectURI, realm strin
 	}
 }
 
-type TokenResponse struct {
-	AccessToken      string `json:"access_token"`
-	RefreshToken     string `json:"refresh_token"`
-	ExpiresIn        int    `json:"expires_in"`
-	RefreshExpiresIn int    `json:"refresh_expires_in"`
-}
-
-func (c *keycloakClient) ExchangeCodeForToken(code string) (*TokenResponse, error) {
+func (c *client) ExchangeCodeForToken(code string) (*TokenResponse, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
 
 	data := url.Values{}
@@ -83,51 +76,7 @@ func (c *keycloakClient) ExchangeCodeForToken(code string) (*TokenResponse, erro
 	return &tokenResponse, nil
 }
 
-func (c *keycloakClient) RefreshToken(refreshToken string) (*TokenResponse, error) {
-	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
-
-	data := url.Values{}
-	data.Set("grant_type", "refresh_token")
-	data.Set("refresh_token", refreshToken)
-	data.Set("client_id", c.ClientID)
-	data.Set("client_secret", c.ClientSecret)
-	data.Set("redirect_uri", c.RedirectURI)
-
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
-	}
-
-	var tokenResponse TokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return nil, err
-	}
-
-	return &tokenResponse, nil
-}
-
-type PublicKeyResponse struct {
-	Keys []PublicKey `json:"keys"`
-}
-
-type PublicKey struct {
-	Kid string `json:"kid"`
-	N   string `json:"n"`
-	E   string `json:"e"`
-}
-
-func (c *keycloakClient) VerifyToken(accessToken string) (*jwt.Token, error) {
+func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", c.BaseURL, c.Realm)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -203,7 +152,41 @@ func (c *keycloakClient) VerifyToken(accessToken string) (*jwt.Token, error) {
 	return parsedToken, nil
 }
 
-func (c *keycloakClient) RevokeToken(refreshToken string) error {
+func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
+	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
+
+	data := url.Values{}
+	data.Set("grant_type", "refresh_token")
+	data.Set("refresh_token", refreshToken)
+	data.Set("client_id", c.ClientID)
+	data.Set("client_secret", c.ClientSecret)
+	data.Set("redirect_uri", c.RedirectURI)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
+	}
+
+	var tokenResponse TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return nil, err
+	}
+
+	return &tokenResponse, nil
+}
+
+func (c *client) RevokeToken(refreshToken string) error {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", c.BaseURL, c.Realm)
 
 	data := url.Values{}
