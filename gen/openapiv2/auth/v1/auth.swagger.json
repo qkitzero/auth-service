@@ -16,6 +16,38 @@
     "application/json"
   ],
   "paths": {
+    "/v1/exchange_code": {
+      "post": {
+        "operationId": "AuthService_ExchangeCode",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ExchangeCodeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ExchangeCodeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
     "/v1/login": {
       "post": {
         "operationId": "AuthService_Login",
@@ -48,38 +80,6 @@
         ]
       }
     },
-    "/v1/logout": {
-      "post": {
-        "operationId": "AuthService_Logout",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1LogoutResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1LogoutRequest"
-            }
-          }
-        ],
-        "tags": [
-          "AuthService"
-        ]
-      }
-    },
     "/v1/refresh": {
       "post": {
         "operationId": "AuthService_RefreshToken",
@@ -104,6 +104,38 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v1RefreshTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/revoke": {
+      "post": {
+        "operationId": "AuthService_RevokeToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RevokeTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RevokeTokenRequest"
             }
           }
         ],
@@ -174,15 +206,18 @@
         }
       }
     },
-    "v1LoginRequest": {
+    "v1ExchangeCodeRequest": {
       "type": "object",
       "properties": {
         "code": {
           "type": "string"
+        },
+        "redirectUri": {
+          "type": "string"
         }
       }
     },
-    "v1LoginResponse": {
+    "v1ExchangeCodeResponse": {
       "type": "object",
       "properties": {
         "userId": {
@@ -193,11 +228,21 @@
         }
       }
     },
-    "v1LogoutRequest": {
-      "type": "object"
+    "v1LoginRequest": {
+      "type": "object",
+      "properties": {
+        "redirectUri": {
+          "type": "string"
+        }
+      }
     },
-    "v1LogoutResponse": {
-      "type": "object"
+    "v1LoginResponse": {
+      "type": "object",
+      "properties": {
+        "loginUrl": {
+          "type": "string"
+        }
+      }
     },
     "v1RefreshTokenRequest": {
       "type": "object"
@@ -209,6 +254,12 @@
           "type": "string"
         }
       }
+    },
+    "v1RevokeTokenRequest": {
+      "type": "object"
+    },
+    "v1RevokeTokenResponse": {
+      "type": "object"
     },
     "v1VerifyTokenRequest": {
       "type": "object"
