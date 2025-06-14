@@ -1,5 +1,9 @@
 # Auth Service
 
+[![Go Test](https://github.com/qkitzero/auth-service/actions/workflows/test.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/qkitzero/auth-service/graph/badge.svg?token=VG4A2J9CTH)](https://codecov.io/gh/qkitzero/auth-service)
+[![Buf CI](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml)
+
 - Keycloak
 - Auth0
 - Microservices Architecture
@@ -9,3 +13,4 @@
 - Clean Architecture
 - Docker
 - Test
+- Codecov
