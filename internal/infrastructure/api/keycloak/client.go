@@ -15,7 +15,7 @@ import (
 )
 
 type Client interface {
-	ExchangeCodeForToken(code string) (*TokenResponse, error)
+	ExchangeCode(code, redirectURI string) (*TokenResponse, error)
 	VerifyToken(accessToken string) (*jwt.Token, error)
 	RefreshToken(refreshToken string) (*TokenResponse, error)
 	RevokeToken(refreshToken string) error
@@ -25,24 +25,22 @@ type client struct {
 	BaseURL      string
 	ClientID     string
 	ClientSecret string
-	RedirectURI  string
 	Realm        string
 	HTTPClient   *http.Client
 }
 
-func NewClient(baseURL, clientID, clientSecret, redirectURI, realm string) Client {
+func NewClient(baseURL, clientID, clientSecret, realm string) Client {
 	httpClient := http.Client{Timeout: 10 * time.Second}
 	return &client{
 		BaseURL:      baseURL,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		RedirectURI:  redirectURI,
 		Realm:        realm,
 		HTTPClient:   &httpClient,
 	}
 }
 
-func (c *client) ExchangeCodeForToken(code string) (*TokenResponse, error) {
+func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
 
 	data := url.Values{}
@@ -50,7 +48,7 @@ func (c *client) ExchangeCodeForToken(code string) (*TokenResponse, error) {
 	data.Set("code", code)
 	data.Set("client_id", c.ClientID)
 	data.Set("client_secret", c.ClientSecret)
-	data.Set("redirect_uri", c.RedirectURI)
+	data.Set("redirect_uri", redirectURI)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {
@@ -160,7 +158,6 @@ func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
 	data.Set("refresh_token", refreshToken)
 	data.Set("client_id", c.ClientID)
 	data.Set("client_secret", c.ClientSecret)
-	data.Set("redirect_uri", c.RedirectURI)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {

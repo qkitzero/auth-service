@@ -15,7 +15,8 @@ import (
 )
 
 type Client interface {
-	ExchangeCodeForToken(code string) (*TokenResponse, error)
+	Login(redirectURI string) (string, error)
+	ExchangeCode(code, redirectURI string) (*TokenResponse, error)
 	RefreshToken(refreshToken string) (*TokenResponse, error)
 	VerifyToken(accessToken string) (*jwt.Token, error)
 	RevokeToken(refreshToken string) error
@@ -25,24 +26,37 @@ type client struct {
 	Domain       string
 	ClientID     string
 	ClientSecret string
-	RedirectURI  string
-	HTTPClient   *http.Client
 	Audience     string
+	HTTPClient   *http.Client
 }
 
-func NewClient(domain, clientID, clientSecret, redirectURI, audience string) Client {
+func NewClient(domain, clientID, clientSecret, audience string) Client {
 	httpClient := http.Client{Timeout: 10 * time.Second}
 	return &client{
 		Domain:       domain,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		RedirectURI:  redirectURI,
 		Audience:     audience,
 		HTTPClient:   &httpClient,
 	}
 }
 
-func (c *client) ExchangeCodeForToken(code string) (*TokenResponse, error) {
+func (c *client) Login(redirectURI string) (string, error) {
+	endpoint := fmt.Sprintf("https://%s/authorize", c.Domain)
+
+	params := url.Values{}
+	params.Set("client_id", c.ClientID)
+	params.Set("response_type", "code")
+	params.Set("redirect_uri", redirectURI)
+	params.Set("audience", c.Audience)
+	params.Set("scope", "openid profile email offline_access")
+
+	loginURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
+
+	return loginURL, nil
+}
+
+func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) {
 	endpoint := fmt.Sprintf("https://%s/oauth/token", c.Domain)
 
 	data := url.Values{}
@@ -50,7 +64,7 @@ func (c *client) ExchangeCodeForToken(code string) (*TokenResponse, error) {
 	data.Set("code", code)
 	data.Set("client_id", c.ClientID)
 	data.Set("client_secret", c.ClientSecret)
-	data.Set("redirect_uri", c.RedirectURI)
+	data.Set("redirect_uri", redirectURI)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {

@@ -13,6 +13,12 @@ service AuthService {
       body: "*"
     };
   }
+  rpc ExchangeCode(ExchangeCodeRequest) returns (ExchangeCodeResponse) {
+    option (google.api.http) = {
+      post: "/v1/exchange_code"
+      body: "*"
+    };
+  }
   rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse) {
     option (google.api.http) = {
       post: "/v1/verify"
@@ -25,19 +31,28 @@ service AuthService {
       body: "*"
     };
   }
-  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse) {
     option (google.api.http) = {
-      post: "/v1/logout"
+      post: "/v1/revoke"
       body: "*"
     };
   }
 }
 
 message LoginRequest {
-  string code = 1;
+  string redirect_uri = 1;
 }
 
 message LoginResponse {
+  string login_url = 1;
+}
+
+message ExchangeCodeRequest {
+  string code = 1;
+  string redirect_uri = 2;
+}
+
+message ExchangeCodeResponse {
   string user_id = 1;
   string access_token = 2;
 }
@@ -54,6 +69,6 @@ message RefreshTokenResponse {
   string access_token = 1;
 }
 
-message LogoutRequest {}
+message RevokeTokenRequest {}
 
-message LogoutResponse {}
+message RevokeTokenResponse {}
