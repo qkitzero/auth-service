@@ -11,25 +11,68 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestExchangeCodeForToken(t *testing.T) {
+func TestLogin(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name                    string
-		success                 bool
-		code                    string
-		exchangeCodeForTokenErr error
+		name        string
+		success     bool
+		redirectURI string
+		loginErr    error
 	}{
 		{
-			name:                    "success exchange code for token",
-			success:                 true,
-			code:                    "code",
-			exchangeCodeForTokenErr: nil,
+			name:        "success login",
+			success:     true,
+			redirectURI: "http://localhost:3000/callback",
+			loginErr:    nil,
 		},
 		{
-			name:                    "failure exchange code for token error",
-			success:                 false,
-			code:                    "code",
-			exchangeCodeForTokenErr: fmt.Errorf("exchange code for token error"),
+			name:        "failure login error",
+			success:     false,
+			redirectURI: "http://localhost:3000/callback",
+			loginErr:    fmt.Errorf("login error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
+			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			mockAuth0Client.EXPECT().Login(tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
+			_, err := authUsecase.Login(tt.redirectURI)
+			if tt.success && err != nil {
+				t.Errorf("expected no error, but got %v", err)
+			}
+			if !tt.success && err == nil {
+				t.Errorf("expected error but got nil")
+			}
+		})
+	}
+}
+
+func TestExchangeCode(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name            string
+		success         bool
+		code            string
+		redirectURI     string
+		exchangeCodeErr error
+	}{
+		{
+			name:            "success exchange code",
+			success:         true,
+			code:            "code",
+			redirectURI:     "http://localhost:3000/callback",
+			exchangeCodeErr: nil,
+		},
+		{
+			name:            "failure exchange code error",
+			success:         false,
+			code:            "code",
+			redirectURI:     "http://localhost:3000/callback",
+			exchangeCodeErr: fmt.Errorf("exchange code error"),
 		},
 	}
 	for _, tt := range tests {
@@ -45,8 +88,8 @@ func TestExchangeCodeForToken(t *testing.T) {
 				ExpiresIn:        3600,
 				RefreshExpiresIn: 3600,
 			}
-			mockAuth0Client.EXPECT().ExchangeCodeForToken(gomock.Any()).Return(tokenResponse, tt.exchangeCodeForTokenErr).AnyTimes()
-			_, err := authUsecase.ExchangeCodeForToken(tt.code)
+			mockAuth0Client.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(tokenResponse, tt.exchangeCodeErr).AnyTimes()
+			_, err := authUsecase.ExchangeCode(tt.code, tt.redirectURI)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
