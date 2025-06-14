@@ -29,7 +29,6 @@ func main() {
 		util.GetEnv("KEYCLOAK_SERVER_BASE_URL", ""),
 		util.GetEnv("KEYCLOAK_CLIENT_ID", ""),
 		util.GetEnv("KEYCLOAK_CLIENT_SECRET", ""),
-		util.GetEnv("KEYCLOAK_CLIENT_REDIRECT_URI", ""),
 		util.GetEnv("KEYCLOAK_REALM", ""),
 	)
 
@@ -37,7 +36,6 @@ func main() {
 		util.GetEnv("AUTH0_DOMAIN", ""),
 		util.GetEnv("AUTH0_CLIENT_ID", ""),
 		util.GetEnv("AUTH0_CLIENT_SECRET", ""),
-		util.GetEnv("AUTH0_CALLBACK_URL", ""),
 		util.GetEnv("AUTH0_AUDIENCE", ""),
 	)
 
