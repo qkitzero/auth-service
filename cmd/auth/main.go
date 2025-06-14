@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
 
 	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
 	application_auth "github.com/qkitzero/auth/internal/application/auth"
@@ -49,6 +50,8 @@ func main() {
 	authv1.RegisterAuthServiceServer(server, tokenHandler)
 
 	healthServer.SetServingStatus("auth", grpc_health_v1.HealthCheckResponse_SERVING)
+
+	reflection.Register(server) // dev
 
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err)
