@@ -5,7 +5,7 @@
 - Microservices Architecture
 - gRPC
 - gRPC Gateway
-- Buf
+- Buf ([buf.build/qkitzero/auth-service](https://buf.build/qkitzero/auth-service))
 - Clean Architecture
 - Docker
 - Test

@@ -21,7 +21,18 @@ func NewAuthHandler(authUsecase auth.AuthUsecase) *AuthHandler {
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
-	token, err := h.authUsecase.ExchangeCodeForToken(req.GetCode())
+	url, err := h.authUsecase.Login(req.GetRedirectUri())
+	if err != nil {
+		return nil, err
+	}
+
+	return &authv1.LoginResponse{
+		LoginUrl: url,
+	}, nil
+}
+
+func (h *AuthHandler) ExchangeCode(ctx context.Context, req *authv1.ExchangeCodeRequest) (*authv1.ExchangeCodeResponse, error) {
+	token, err := h.authUsecase.ExchangeCode(req.GetCode(), req.GetRedirectUri())
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +44,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 
 	grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken()))
 
-	return &authv1.LoginResponse{
+	return &authv1.ExchangeCodeResponse{
 		UserId:      string(user.ID()),
 		AccessToken: token.AccessToken(),
 	}, nil
@@ -92,7 +103,7 @@ func (h *AuthHandler) RefreshToken(ctx context.Context, req *authv1.RefreshToken
 	}, nil
 }
 
-func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
+func (h *AuthHandler) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRequest) (*authv1.RevokeTokenResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, errors.New("metadata is missing")
@@ -109,5 +120,5 @@ func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*a
 		return nil, err
 	}
 
-	return &authv1.LogoutResponse{}, nil
+	return &authv1.RevokeTokenResponse{}, nil
 }

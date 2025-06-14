@@ -41,19 +41,34 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
-// ExchangeCodeForToken mocks base method.
-func (m *MockClient) ExchangeCodeForToken(code string) (*auth0.TokenResponse, error) {
+// ExchangeCode mocks base method.
+func (m *MockClient) ExchangeCode(code, redirectURI string) (*auth0.TokenResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExchangeCodeForToken", code)
+	ret := m.ctrl.Call(m, "ExchangeCode", code, redirectURI)
 	ret0, _ := ret[0].(*auth0.TokenResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ExchangeCodeForToken indicates an expected call of ExchangeCodeForToken.
-func (mr *MockClientMockRecorder) ExchangeCodeForToken(code any) *gomock.Call {
+// ExchangeCode indicates an expected call of ExchangeCode.
+func (mr *MockClientMockRecorder) ExchangeCode(code, redirectURI any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExchangeCodeForToken", reflect.TypeOf((*MockClient)(nil).ExchangeCodeForToken), code)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExchangeCode", reflect.TypeOf((*MockClient)(nil).ExchangeCode), code, redirectURI)
+}
+
+// Login mocks base method.
+func (m *MockClient) Login(redirectURI string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Login", redirectURI)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Login indicates an expected call of Login.
+func (mr *MockClientMockRecorder) Login(redirectURI any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockClient)(nil).Login), redirectURI)
 }
 
 // RefreshToken mocks base method.

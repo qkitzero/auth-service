@@ -8,7 +8,8 @@ import (
 )
 
 type AuthUsecase interface {
-	ExchangeCodeForToken(code string) (token.Token, error)
+	Login(redirectURI string) (string, error)
+	ExchangeCode(code, redirectURI string) (token.Token, error)
 	VerifyToken(accessToken string) (user.User, error)
 	RefreshToken(refreshToken string) (token.Token, error)
 	RevokeToken(refreshToken string) error
@@ -29,8 +30,17 @@ func NewAuthUsecase(
 	}
 }
 
-func (s *authUsecase) ExchangeCodeForToken(code string) (token.Token, error) {
-	tokenResponse, err := s.auth0Client.ExchangeCodeForToken(code)
+func (s *authUsecase) Login(redirectURI string) (string, error) {
+	url, err := s.auth0Client.Login(redirectURI)
+	if err != nil {
+		return "", err
+	}
+
+	return url, nil
+}
+
+func (s *authUsecase) ExchangeCode(code, redirectURI string) (token.Token, error) {
+	tokenResponse, err := s.auth0Client.ExchangeCode(code, redirectURI)
 	if err != nil {
 		return nil, err
 	}
