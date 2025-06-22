@@ -29,11 +29,45 @@ steps:
         "--region",
         "us-central1",
         "--update-secrets",
-        "AUTH0_CLIENT_ID=AUTH_SERVICE_AUTH0_CLIENT_ID:latest,AUTH0_DOMAIN=AUTH_SERVICE_AUTH0_DOMAIN:latest,AUTH0_CLIENT_SECRET=AUTH_SERVICE_AUTH0_CLIENT_SECRET:latest,AUTH0_AUDIENCE=AUTH_SERVICE_AUTH0_AUDIENCE:latest",
+        "ENV=AUTH_SERVICE_ENV:latest,AUTH0_CLIENT_ID=AUTH_SERVICE_AUTH0_CLIENT_ID:latest,AUTH0_DOMAIN=AUTH_SERVICE_AUTH0_DOMAIN:latest,AUTH0_CLIENT_SECRET=AUTH_SERVICE_AUTH0_CLIENT_SECRET:latest,AUTH0_AUDIENCE=AUTH_SERVICE_AUTH0_AUDIENCE:latest",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/auth-service-gateway/$COMMIT_SHA",
+        "-f",
+        "./build/gateway/Dockerfile",
+        ".",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/auth-service-gateway/$COMMIT_SHA",
+      ]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      [
+        "run",
+        "deploy",
+        "auth-service-gateway",
+        "--image",
+        "us-central1-docker.pkg.dev/$PROJECT_ID/auth-service-gateway/$COMMIT_SHA",
+        "--region",
+        "us-central1",
+        "--update-secrets",
+        "ENV=AUTH_SERVICE_ENV:latest,SERVER_HOST=AUTH_SERVICE_SERVER_HOST:latest,SERVER_PORT=AUTH_SERVICE_SERVER_PORT:latest",
       ]
 
 images:
   - "us-central1-docker.pkg.dev/$PROJECT_ID/auth-service/$COMMIT_SHA"
+  - "us-central1-docker.pkg.dev/$PROJECT_ID/auth-service-gateway/$COMMIT_SHA"
 
 options:
   logging: CLOUD_LOGGING_ONLY

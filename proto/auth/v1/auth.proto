@@ -15,7 +15,7 @@ service AuthService {
   }
   rpc ExchangeCode(ExchangeCodeRequest) returns (ExchangeCodeResponse) {
     option (google.api.http) = {
-      post: "/v1/exchange_code"
+      post: "/v1/exchange-code"
       body: "*"
     };
   }
