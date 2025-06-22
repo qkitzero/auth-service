@@ -16,7 +16,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/exchange_code": {
+    "/v1/exchange-code": {
       "post": {
         "operationId": "AuthService_ExchangeCode",
         "responses": {
