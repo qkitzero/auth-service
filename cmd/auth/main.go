@@ -48,7 +48,9 @@ func main() {
 
 	healthServer.SetServingStatus("auth", grpc_health_v1.HealthCheckResponse_SERVING)
 
-	reflection.Register(server) // dev
+	if util.GetEnv("ENV", "development") == "development" {
+		reflection.Register(server)
+	}
 
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err)
