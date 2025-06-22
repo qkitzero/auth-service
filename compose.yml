@@ -6,15 +6,16 @@ services:
     container_name: auth-server
     restart: always
     environment:
+      - ENV=${ENV}
       - PORT=${SERVER_CONTAINER_PORT}
-      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
-      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
-      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
-      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
       # - KEYCLOAK_SERVER_BASE_URL=${KEYCLOAK_SERVER_BASE_URL}
       # - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
       # - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
       # - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
+      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
     ports:
       - "${SERVER_HOST_PORT}:${SERVER_CONTAINER_PORT}"
     healthcheck:
@@ -73,6 +74,7 @@ services:
     container_name: auth-grpc-gateway
     restart: always
     environment:
+      - ENV=${ENV}
       - GRPC_GATEWAY_PORT=${GRPC_GATEWAY_CONTAINER_PORT}
       - SERVER_HOST=${SERVER_HOST}
       - SERVER_PORT=${SERVER_CONTAINER_PORT}
