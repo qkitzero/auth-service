@@ -75,7 +75,7 @@ services:
     restart: always
     environment:
       - ENV=${ENV}
-      - GRPC_GATEWAY_PORT=${GRPC_GATEWAY_CONTAINER_PORT}
+      - PORT=${GRPC_GATEWAY_CONTAINER_PORT}
       - SERVER_HOST=${SERVER_HOST}
       - SERVER_PORT=${SERVER_CONTAINER_PORT}
     ports:
