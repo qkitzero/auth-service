@@ -12,7 +12,6 @@ import (
 	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
 	application_auth "github.com/qkitzero/auth/internal/application/auth"
 	"github.com/qkitzero/auth/internal/infrastructure/api/auth0"
-	"github.com/qkitzero/auth/internal/infrastructure/api/keycloak"
 	interface_auth "github.com/qkitzero/auth/internal/interface/grpc/auth"
 	"github.com/qkitzero/auth/util"
 )
@@ -25,12 +24,12 @@ func main() {
 
 	server := grpc.NewServer()
 
-	keycloakClient := keycloak.NewClient(
-		util.GetEnv("KEYCLOAK_SERVER_BASE_URL", ""),
-		util.GetEnv("KEYCLOAK_CLIENT_ID", ""),
-		util.GetEnv("KEYCLOAK_CLIENT_SECRET", ""),
-		util.GetEnv("KEYCLOAK_REALM", ""),
-	)
+	// keycloakClient := keycloak.NewClient(
+	// 	util.GetEnv("KEYCLOAK_SERVER_BASE_URL", ""),
+	// 	util.GetEnv("KEYCLOAK_CLIENT_ID", ""),
+	// 	util.GetEnv("KEYCLOAK_CLIENT_SECRET", ""),
+	// 	util.GetEnv("KEYCLOAK_REALM", ""),
+	// )
 
 	auth0Client := auth0.NewClient(
 		util.GetEnv("AUTH0_DOMAIN", ""),
@@ -39,7 +38,7 @@ func main() {
 		util.GetEnv("AUTH0_AUDIENCE", ""),
 	)
 
-	authUsecase := application_auth.NewAuthUsecase(keycloakClient, auth0Client)
+	authUsecase := application_auth.NewAuthUsecase(nil, auth0Client)
 
 	healthServer := health.NewServer()
 	tokenHandler := interface_auth.NewAuthHandler(authUsecase)
