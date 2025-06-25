@@ -28,8 +28,8 @@ steps:
         "us-central1-docker.pkg.dev/$PROJECT_ID/auth-service/$COMMIT_SHA",
         "--region",
         "us-central1",
-        "--update-secrets",
-        "ENV=AUTH_SERVICE_ENV:latest,AUTH0_CLIENT_ID=AUTH_SERVICE_AUTH0_CLIENT_ID:latest,AUTH0_DOMAIN=AUTH_SERVICE_AUTH0_DOMAIN:latest,AUTH0_CLIENT_SECRET=AUTH_SERVICE_AUTH0_CLIENT_SECRET:latest,AUTH0_AUDIENCE=AUTH_SERVICE_AUTH0_AUDIENCE:latest",
+        "--set-secrets-file",
+        "env=.env:AUTH_SERVICE_ENV:latest",
       ]
 
   - name: "gcr.io/cloud-builders/docker"
