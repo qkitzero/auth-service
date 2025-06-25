@@ -27,7 +27,7 @@ steps:
           --image=us-central1-docker.pkg.dev/$PROJECT_ID/auth-service/$COMMIT_SHA \
           --region=us-central1 \
           --platform=managed \
-          --env-vars-file=.env
+          --set-env-vars=$(cat .env | xargs | sed 's/ /,/g')
 
   # - name: "gcr.io/cloud-builders/docker"
   #   args:
