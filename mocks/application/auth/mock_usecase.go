@@ -71,6 +71,21 @@ func (mr *MockAuthUsecaseMockRecorder) Login(redirectURI any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockAuthUsecase)(nil).Login), redirectURI)
 }
 
+// Logout mocks base method.
+func (m *MockAuthUsecase) Logout(returnTo string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Logout", returnTo)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Logout indicates an expected call of Logout.
+func (mr *MockAuthUsecaseMockRecorder) Logout(returnTo any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockAuthUsecase)(nil).Logout), returnTo)
+}
+
 // RefreshToken mocks base method.
 func (m *MockAuthUsecase) RefreshToken(refreshToken string) (token.Token, error) {
 	m.ctrl.T.Helper()
