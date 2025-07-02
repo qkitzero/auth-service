@@ -14,3 +14,5 @@
 - Docker
 - Test
 - Codecov
+- Cloud Build
+- Cloud Run

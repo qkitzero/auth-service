@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 
 	"go.uber.org/mock/gomock"
@@ -36,7 +36,7 @@ func TestLogin(t *testing.T) {
 			success:     false,
 			ctx:         context.Background(),
 			redirectURI: "http://localhost:3000/callback",
-			loginErr:    fmt.Errorf("login error"),
+			loginErr:    errors.New("login error"),
 		},
 	}
 	for _, tt := range tests {
@@ -90,7 +90,7 @@ func TestExchangeCode(t *testing.T) {
 			ctx:                     context.Background(),
 			code:                    "code",
 			redirectURI:             "http://localhost:3000/callback",
-			exchangeCodeForTokenErr: fmt.Errorf("exchange code error"),
+			exchangeCodeForTokenErr: errors.New("exchange code error"),
 			verifyTokenErr:          nil,
 		},
 		{
@@ -100,7 +100,7 @@ func TestExchangeCode(t *testing.T) {
 			code:                    "code",
 			redirectURI:             "http://localhost:3000/callback",
 			exchangeCodeForTokenErr: nil,
-			verifyTokenErr:          fmt.Errorf("verify token error"),
+			verifyTokenErr:          errors.New("verify token error"),
 		},
 	}
 	for _, tt := range tests {
@@ -179,7 +179,7 @@ func TestVerifyToken(t *testing.T) {
 			success:        false,
 			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)),
 			accessToken:    accessToken,
-			verifyTokenErr: fmt.Errorf("verify token error"),
+			verifyTokenErr: errors.New("verify token error"),
 		},
 	}
 	for _, tt := range tests {
@@ -244,7 +244,7 @@ func TestRefreshToken(t *testing.T) {
 			success:         false,
 			ctx:             metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
 			refreshToken:    refreshToken,
-			refreshTokenErr: fmt.Errorf("refresh token error"),
+			refreshTokenErr: errors.New("refresh token error"),
 		},
 	}
 	for _, tt := range tests {
@@ -309,7 +309,7 @@ func TestRevokeToken(t *testing.T) {
 			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
 			success:        false,
 			refreshToken:   refreshToken,
-			revokeTokenErr: fmt.Errorf("revoke token error"),
+			revokeTokenErr: errors.New("revoke token error"),
 		},
 	}
 	for _, tt := range tests {
@@ -328,6 +328,55 @@ func TestRevokeToken(t *testing.T) {
 			req := &authv1.RevokeTokenRequest{}
 
 			_, err := authHandler.RevokeToken(tt.ctx, req)
+			if tt.success && err != nil {
+				t.Errorf("expected no error, but got %v", err)
+			}
+			if !tt.success && err == nil {
+				t.Errorf("expected error but got nil")
+			}
+		})
+	}
+}
+
+func TestLogout(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		success   bool
+		ctx       context.Context
+		returnTo  string
+		logoutErr error
+	}{
+		{
+			name:      "success logout",
+			success:   true,
+			ctx:       context.Background(),
+			returnTo:  "http://localhost:3000/",
+			logoutErr: nil,
+		},
+		{
+			name:      "failure logout error",
+			success:   false,
+			ctx:       context.Background(),
+			returnTo:  "http://localhost:3000/",
+			logoutErr: errors.New("logout error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockAuthUsecase := mocksAuthUsecase.NewMockAuthUsecase(ctrl)
+			mockAuthUsecase.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
+
+			authHandler := NewAuthHandler(mockAuthUsecase)
+
+			req := &authv1.LogoutRequest{
+				ReturnTo: tt.returnTo,
+			}
+
+			_, err := authHandler.Logout(tt.ctx, req)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}

@@ -37,6 +37,12 @@ service AuthService {
       body: "*"
     };
   }
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (google.api.http) = {
+      post: "/v1/logout"
+      body: "*"
+    };
+  }
 }
 
 message LoginRequest {
@@ -72,3 +78,11 @@ message RefreshTokenResponse {
 message RevokeTokenRequest {}
 
 message RevokeTokenResponse {}
+
+message LogoutRequest {
+  string return_to = 1;
+}
+
+message LogoutResponse {
+  string logout_url = 1;
+}
