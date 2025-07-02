@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -29,7 +29,7 @@ func TestLogin(t *testing.T) {
 			name:        "failure login error",
 			success:     false,
 			redirectURI: "http://localhost:3000/callback",
-			loginErr:    fmt.Errorf("login error"),
+			loginErr:    errors.New("login error"),
 		},
 	}
 	for _, tt := range tests {
@@ -72,7 +72,7 @@ func TestExchangeCode(t *testing.T) {
 			success:         false,
 			code:            "code",
 			redirectURI:     "http://localhost:3000/callback",
-			exchangeCodeErr: fmt.Errorf("exchange code error"),
+			exchangeCodeErr: errors.New("exchange code error"),
 		},
 	}
 	for _, tt := range tests {
@@ -121,7 +121,7 @@ func TestVerifyToken(t *testing.T) {
 			success:        false,
 			accessToken:    "accessToken",
 			claims:         jwt.MapClaims{"sub": "126ff835-d63f-4f44-a3aa-b5e530b98991"},
-			verifyTokenErr: fmt.Errorf("verify token error"),
+			verifyTokenErr: errors.New("verify token error"),
 		},
 		{
 			name:           "failure invalid sub",
@@ -141,7 +141,7 @@ func TestVerifyToken(t *testing.T) {
 			jwtToken := &jwt.Token{
 				Claims: tt.claims,
 			}
-			mockAuth0Client.EXPECT().VerifyToken(gomock.Any()).Return(jwtToken, tt.verifyTokenErr).AnyTimes()
+			mockAuth0Client.EXPECT().VerifyToken(tt.accessToken).Return(jwtToken, tt.verifyTokenErr).AnyTimes()
 			_, err := authUsecase.VerifyToken(tt.accessToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
@@ -171,7 +171,7 @@ func TestRefreshToken(t *testing.T) {
 			name:            "failure refresh token error",
 			success:         false,
 			refreshToken:    "refreshToken",
-			refreshTokenErr: fmt.Errorf("refresh token error"),
+			refreshTokenErr: errors.New("refresh token error"),
 		},
 	}
 	for _, tt := range tests {
@@ -187,7 +187,7 @@ func TestRefreshToken(t *testing.T) {
 				ExpiresIn:        3600,
 				RefreshExpiresIn: 3600,
 			}
-			mockAuth0Client.EXPECT().RefreshToken(gomock.Any()).Return(tokenResponse, tt.refreshTokenErr).AnyTimes()
+			mockAuth0Client.EXPECT().RefreshToken(tt.refreshToken).Return(tokenResponse, tt.refreshTokenErr).AnyTimes()
 			_, err := authUsecase.RefreshToken(tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
@@ -221,8 +221,48 @@ func TestRevokeToken(t *testing.T) {
 			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
 			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
 			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
-			mockAuth0Client.EXPECT().RevokeToken(gomock.Any()).Return(tt.revokeTokenErr).AnyTimes()
+			mockAuth0Client.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
 			err := authUsecase.RevokeToken(tt.refreshToken)
+			if tt.success && err != nil {
+				t.Errorf("expected no error, but got %v", err)
+			}
+			if !tt.success && err == nil {
+				t.Errorf("expected error but got nil")
+			}
+		})
+	}
+}
+
+func TestLogout(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		success   bool
+		returnTo  string
+		logoutErr error
+	}{
+		{
+			name:      "success logout",
+			success:   true,
+			returnTo:  "http://localhost:3000/",
+			logoutErr: nil,
+		},
+		{
+			name:      "failure logout error",
+			success:   false,
+			returnTo:  "http://localhost:3000/",
+			logoutErr: errors.New("logout error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
+			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			mockAuth0Client.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
+			_, err := authUsecase.Logout(tt.returnTo)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}

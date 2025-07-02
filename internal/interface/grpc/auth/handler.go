@@ -122,3 +122,14 @@ func (h *AuthHandler) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRe
 
 	return &authv1.RevokeTokenResponse{}, nil
 }
+
+func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
+	url, err := h.authUsecase.Logout(req.GetReturnTo())
+	if err != nil {
+		return nil, err
+	}
+
+	return &authv1.LogoutResponse{
+		LogoutUrl: url,
+	}, nil
+}

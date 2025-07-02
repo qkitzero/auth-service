@@ -20,6 +20,7 @@ type Client interface {
 	RefreshToken(refreshToken string) (*TokenResponse, error)
 	VerifyToken(accessToken string) (*jwt.Token, error)
 	RevokeToken(refreshToken string) error
+	Logout(returnTo string) (string, error)
 }
 
 type client struct {
@@ -226,4 +227,16 @@ func (c *client) RevokeToken(refreshToken string) error {
 	}
 
 	return nil
+}
+
+func (c *client) Logout(returnTo string) (string, error) {
+	endpoint := fmt.Sprintf("https://%s/v2/logout", c.Domain)
+
+	params := url.Values{}
+	params.Set("client_id", c.ClientID)
+	params.Set("returnTo", returnTo)
+
+	logoutURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
+
+	return logoutURL, nil
 }

@@ -13,6 +13,7 @@ type AuthUsecase interface {
 	VerifyToken(accessToken string) (user.User, error)
 	RefreshToken(refreshToken string) (token.Token, error)
 	RevokeToken(refreshToken string) error
+	Logout(returnTo string) (string, error)
 }
 
 type authUsecase struct {
@@ -78,4 +79,13 @@ func (s *authUsecase) RefreshToken(refreshToken string) (token.Token, error) {
 
 func (s *authUsecase) RevokeToken(refreshToken string) error {
 	return s.auth0Client.RevokeToken(refreshToken)
+}
+
+func (s *authUsecase) Logout(returnTo string) (string, error) {
+	url, err := s.auth0Client.Logout(returnTo)
+	if err != nil {
+		return "", err
+	}
+
+	return url, nil
 }
