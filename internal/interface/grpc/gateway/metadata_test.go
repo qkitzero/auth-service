@@ -18,7 +18,7 @@ func TestCustomMetadataAnnotator(t *testing.T) {
 		expectedMD metadata.MD
 	}{
 		{
-			name:    "success with refresh_token cookie",
+			name:    "success with refresh token cookie",
 			success: true,
 			req: func() *http.Request {
 				req, _ := http.NewRequest("GET", "/", nil)
@@ -33,7 +33,7 @@ func TestCustomMetadataAnnotator(t *testing.T) {
 			},
 		},
 		{
-			name:    "success: without refresh_token cookie",
+			name:    "success without refresh token cookie",
 			success: true,
 			req: func() *http.Request {
 				req, _ := http.NewRequest("GET", "/", nil)
