@@ -163,7 +163,7 @@ func TestVerifyToken(t *testing.T) {
 		{
 			name:           "failure missing authorization",
 			success:        false,
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.MD{}),
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs()),
 			accessToken:    accessToken,
 			verifyTokenErr: nil,
 		},
@@ -235,7 +235,7 @@ func TestRefreshToken(t *testing.T) {
 		{
 			name:            "failure missing refresh token",
 			success:         false,
-			ctx:             metadata.NewIncomingContext(context.Background(), metadata.MD{}),
+			ctx:             metadata.NewIncomingContext(context.Background(), metadata.Pairs()),
 			refreshToken:    refreshToken,
 			refreshTokenErr: nil,
 		},
@@ -300,7 +300,7 @@ func TestRevokeToken(t *testing.T) {
 		{
 			name:           "failure missing refresh token",
 			success:        false,
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.MD{}),
+			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs()),
 			refreshToken:   refreshToken,
 			revokeTokenErr: nil,
 		},
