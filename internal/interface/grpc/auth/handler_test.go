@@ -10,9 +10,9 @@ import (
 
 	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
 	"github.com/qkitzero/auth/internal/domain/user"
-	mocksAuthUsecase "github.com/qkitzero/auth/mocks/application/auth"
-	mocksToken "github.com/qkitzero/auth/mocks/domain/token"
-	mocksUser "github.com/qkitzero/auth/mocks/domain/user"
+	mocksappauth "github.com/qkitzero/auth/mocks/application/auth"
+	mockstoken "github.com/qkitzero/auth/mocks/domain/token"
+	mocksuser "github.com/qkitzero/auth/mocks/domain/user"
 )
 
 func TestLogin(t *testing.T) {
@@ -44,7 +44,7 @@ func TestLogin(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksAuthUsecase.NewMockAuthUsecase(ctrl)
+			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockAuthUsecase.EXPECT().Login(tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
@@ -108,9 +108,9 @@ func TestExchangeCode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksAuthUsecase.NewMockAuthUsecase(ctrl)
-			mockToken := mocksToken.NewMockToken(ctrl)
-			mockUser := mocksUser.NewMockUser(ctrl)
+			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockToken := mockstoken.NewMockToken(ctrl)
+			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(mockToken, tt.exchangeCodeForTokenErr).AnyTimes()
 			mockAuthUsecase.EXPECT().VerifyToken("accessToken").Return(mockUser, tt.verifyTokenErr).AnyTimes()
 			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
@@ -187,8 +187,8 @@ func TestVerifyToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksAuthUsecase.NewMockAuthUsecase(ctrl)
-			mockUser := mocksUser.NewMockUser(ctrl)
+			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().VerifyToken(tt.accessToken).Return(mockUser, tt.verifyTokenErr).AnyTimes()
 			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
 			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
@@ -252,8 +252,8 @@ func TestRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksAuthUsecase.NewMockAuthUsecase(ctrl)
-			mockToken := mocksToken.NewMockToken(ctrl)
+			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockToken := mockstoken.NewMockToken(ctrl)
 			mockAuthUsecase.EXPECT().RefreshToken(tt.refreshToken).Return(mockToken, tt.refreshTokenErr).AnyTimes()
 			mockToken.EXPECT().AccessToken().Return("accessToken").AnyTimes()
 			mockToken.EXPECT().RefreshToken().Return("refreshToken").AnyTimes()
@@ -317,8 +317,8 @@ func TestRevokeToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksAuthUsecase.NewMockAuthUsecase(ctrl)
-			mockUser := mocksUser.NewMockUser(ctrl)
+			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
 			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
 			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
@@ -367,7 +367,7 @@ func TestLogout(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksAuthUsecase.NewMockAuthUsecase(ctrl)
+			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockAuthUsecase.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
