@@ -8,11 +8,11 @@ import (
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/metadata"
 
-	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
-	"github.com/qkitzero/auth/internal/domain/user"
-	mocksappauth "github.com/qkitzero/auth/mocks/application/auth"
-	mockstoken "github.com/qkitzero/auth/mocks/domain/token"
-	mocksuser "github.com/qkitzero/auth/mocks/domain/user"
+	authv1 "github.com/qkitzero/auth-service/gen/go/auth/v1"
+	"github.com/qkitzero/auth-service/internal/domain/user"
+	mocksappauth "github.com/qkitzero/auth-service/mocks/application/auth"
+	mockstoken "github.com/qkitzero/auth-service/mocks/domain/token"
+	mocksuser "github.com/qkitzero/auth-service/mocks/domain/user"
 )
 
 func TestLogin(t *testing.T) {

@@ -1,10 +1,10 @@
 package auth
 
 import (
-	"github.com/qkitzero/auth/internal/domain/token"
-	"github.com/qkitzero/auth/internal/domain/user"
-	"github.com/qkitzero/auth/internal/infrastructure/api/auth0"
-	"github.com/qkitzero/auth/internal/infrastructure/api/keycloak"
+	"github.com/qkitzero/auth-service/internal/domain/token"
+	"github.com/qkitzero/auth-service/internal/domain/user"
+	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
+	"github.com/qkitzero/auth-service/internal/infrastructure/api/keycloak"
 )
 
 type AuthUsecase interface {

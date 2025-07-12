@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/qkitzero/auth/internal/infrastructure/api/auth0"
-	mocksAuth0 "github.com/qkitzero/auth/mocks/infrastructure/api/auth0"
-	mocksKeycloak "github.com/qkitzero/auth/mocks/infrastructure/api/keycloak"
 	"go.uber.org/mock/gomock"
+
+	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
+	mocksAuth0 "github.com/qkitzero/auth-service/mocks/infrastructure/api/auth0"
+	mocksKeycloak "github.com/qkitzero/auth-service/mocks/infrastructure/api/keycloak"
 )
 
 func TestLogin(t *testing.T) {
