@@ -12,8 +12,8 @@ package mocks
 import (
 	reflect "reflect"
 
-	token "github.com/qkitzero/auth/internal/domain/token"
-	user "github.com/qkitzero/auth/internal/domain/user"
+	token "github.com/qkitzero/auth-service/internal/domain/token"
+	user "github.com/qkitzero/auth-service/internal/domain/user"
 	gomock "go.uber.org/mock/gomock"
 )
 

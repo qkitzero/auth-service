@@ -1,4 +1,4 @@
-module github.com/qkitzero/auth
+module github.com/qkitzero/auth-service
 
 go 1.24.3
 

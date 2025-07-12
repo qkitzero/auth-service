@@ -5,10 +5,11 @@ import (
 	"errors"
 	"strings"
 
-	authv1 "github.com/qkitzero/auth/gen/go/auth/v1"
-	"github.com/qkitzero/auth/internal/application/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	authv1 "github.com/qkitzero/auth-service/gen/go/auth/v1"
+	"github.com/qkitzero/auth-service/internal/application/auth"
 )
 
 type AuthHandler struct {
