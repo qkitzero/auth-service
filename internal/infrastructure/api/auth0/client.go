@@ -99,9 +99,7 @@ func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
 		return nil, err
 	}
 
-	httpClient := http.Client{Timeout: 10 * time.Second}
-
-	resp, err := httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
