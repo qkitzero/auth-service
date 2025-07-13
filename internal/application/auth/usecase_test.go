@@ -8,8 +8,8 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
-	mocksAuth0 "github.com/qkitzero/auth-service/mocks/infrastructure/api/auth0"
-	mocksKeycloak "github.com/qkitzero/auth-service/mocks/infrastructure/api/keycloak"
+	mocksauth0 "github.com/qkitzero/auth-service/mocks/infrastructure/api/auth0"
+	mockskeycloak "github.com/qkitzero/auth-service/mocks/infrastructure/api/keycloak"
 )
 
 func TestLogin(t *testing.T) {
@@ -41,8 +41,8 @@ func TestLogin(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
+			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
+			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().Login(tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
@@ -90,14 +90,14 @@ func TestExchangeCode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
+			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
 			tokenResponse := &auth0.TokenResponse{
 				AccessToken:      "accessToken",
 				RefreshToken:     "refreshToken",
 				ExpiresIn:        3600,
 				RefreshExpiresIn: 3600,
 			}
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
+			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(tokenResponse, tt.exchangeCodeErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
@@ -152,11 +152,11 @@ func TestVerifyToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
+			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
 			jwtToken := &jwt.Token{
 				Claims: tt.claims,
 			}
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
+			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().VerifyToken(tt.accessToken).Return(jwtToken, tt.verifyTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
@@ -201,14 +201,14 @@ func TestRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
+			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
 			tokenResponse := &auth0.TokenResponse{
 				AccessToken:      "accessToken",
 				RefreshToken:     "refreshToken",
 				ExpiresIn:        3600,
 				RefreshExpiresIn: 3600,
 			}
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
+			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().RefreshToken(tt.refreshToken).Return(tokenResponse, tt.refreshTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
@@ -247,8 +247,8 @@ func TestRevokeToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
+			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
+			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
@@ -293,8 +293,8 @@ func TestLogout(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
+			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
+			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)

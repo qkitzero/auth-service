@@ -10,9 +10,9 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	authv1 "github.com/qkitzero/auth-service/gen/go/auth/v1"
-	application_auth "github.com/qkitzero/auth-service/internal/application/auth"
+	appauth "github.com/qkitzero/auth-service/internal/application/auth"
 	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
-	interface_auth "github.com/qkitzero/auth-service/internal/interface/grpc/auth"
+	infraauth "github.com/qkitzero/auth-service/internal/interface/grpc/auth"
 	"github.com/qkitzero/auth-service/util"
 )
 
@@ -38,10 +38,10 @@ func main() {
 		util.GetEnv("AUTH0_AUDIENCE", ""),
 	)
 
-	authUsecase := application_auth.NewAuthUsecase(nil, auth0Client)
+	authUsecase := appauth.NewAuthUsecase(nil, auth0Client)
 
 	healthServer := health.NewServer()
-	tokenHandler := interface_auth.NewAuthHandler(authUsecase)
+	tokenHandler := infraauth.NewAuthHandler(authUsecase)
 
 	grpc_health_v1.RegisterHealthServer(server, healthServer)
 	authv1.RegisterAuthServiceServer(server, tokenHandler)
