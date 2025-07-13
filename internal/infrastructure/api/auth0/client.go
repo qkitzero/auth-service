@@ -24,32 +24,32 @@ type Client interface {
 }
 
 type client struct {
-	Domain       string
-	ClientID     string
-	ClientSecret string
-	Audience     string
-	HTTPClient   *http.Client
+	baseURL      string
+	clientID     string
+	clientSecret string
+	audience     string
+	httpClient   *http.Client
 }
 
-func NewClient(domain, clientID, clientSecret, audience string) Client {
+func NewClient(baseURL, clientID, clientSecret, audience string) Client {
 	httpClient := http.Client{Timeout: 10 * time.Second}
 	return &client{
-		Domain:       domain,
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		Audience:     audience,
-		HTTPClient:   &httpClient,
+		baseURL:      baseURL,
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		audience:     audience,
+		httpClient:   &httpClient,
 	}
 }
 
 func (c *client) Login(redirectURI string) (string, error) {
-	endpoint := fmt.Sprintf("https://%s/authorize", c.Domain)
+	endpoint := fmt.Sprintf("%s/authorize", c.baseURL)
 
 	params := url.Values{}
-	params.Set("client_id", c.ClientID)
+	params.Set("client_id", c.clientID)
 	params.Set("response_type", "code")
 	params.Set("redirect_uri", redirectURI)
-	params.Set("audience", c.Audience)
+	params.Set("audience", c.audience)
 	params.Set("scope", "openid profile email offline_access")
 
 	loginURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
@@ -58,13 +58,13 @@ func (c *client) Login(redirectURI string) (string, error) {
 }
 
 func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) {
-	endpoint := fmt.Sprintf("https://%s/oauth/token", c.Domain)
+	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
 
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("client_id", c.ClientID)
-	data.Set("client_secret", c.ClientSecret)
+	data.Set("client_id", c.clientID)
+	data.Set("client_secret", c.clientSecret)
 	data.Set("redirect_uri", redirectURI)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
@@ -73,7 +73,7 @@ func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) 
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -92,16 +92,14 @@ func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) 
 }
 
 func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
-	endpoint := fmt.Sprintf("https://%s/.well-known/jwks.json", c.Domain)
+	endpoint := fmt.Sprintf("%s/.well-known/jwks.json", c.baseURL)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	httpClient := http.Client{Timeout: 10 * time.Second}
-
-	resp, err := httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -170,13 +168,13 @@ func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
 }
 
 func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
-	endpoint := fmt.Sprintf("https://%s/oauth/token", c.Domain)
+	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
 
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)
-	data.Set("client_id", c.ClientID)
-	data.Set("client_secret", c.ClientSecret)
+	data.Set("client_id", c.clientID)
+	data.Set("client_secret", c.clientSecret)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {
@@ -184,7 +182,7 @@ func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -203,11 +201,11 @@ func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
 }
 
 func (c *client) RevokeToken(refreshToken string) error {
-	endpoint := fmt.Sprintf("https://%s/oauth/revoke", c.Domain)
+	endpoint := fmt.Sprintf("%s/oauth/revoke", c.baseURL)
 
 	data := url.Values{}
-	data.Set("client_id", c.ClientID)
-	data.Set("client_secret", c.ClientSecret)
+	data.Set("client_id", c.clientID)
+	data.Set("client_secret", c.clientSecret)
 	data.Set("token", refreshToken)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
@@ -216,7 +214,7 @@ func (c *client) RevokeToken(refreshToken string) error {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -230,10 +228,10 @@ func (c *client) RevokeToken(refreshToken string) error {
 }
 
 func (c *client) Logout(returnTo string) (string, error) {
-	endpoint := fmt.Sprintf("https://%s/v2/logout", c.Domain)
+	endpoint := fmt.Sprintf("%s/v2/logout", c.baseURL)
 
 	params := url.Values{}
-	params.Set("client_id", c.ClientID)
+	params.Set("client_id", c.clientID)
 	params.Set("returnTo", returnTo)
 
 	logoutURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())

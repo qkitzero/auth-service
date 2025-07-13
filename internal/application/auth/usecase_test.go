@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/qkitzero/auth/internal/infrastructure/api/auth0"
-	mocksAuth0 "github.com/qkitzero/auth/mocks/infrastructure/api/auth0"
-	mocksKeycloak "github.com/qkitzero/auth/mocks/infrastructure/api/keycloak"
 	"go.uber.org/mock/gomock"
+
+	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
+	mocksAuth0 "github.com/qkitzero/auth-service/mocks/infrastructure/api/auth0"
+	mocksKeycloak "github.com/qkitzero/auth-service/mocks/infrastructure/api/keycloak"
 )
 
 func TestLogin(t *testing.T) {
@@ -33,13 +34,19 @@ func TestLogin(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+
 			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
 			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
 			mockAuth0Client.EXPECT().Login(tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
+
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+
 			_, err := authUsecase.Login(tt.redirectURI)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
@@ -76,19 +83,25 @@ func TestExchangeCode(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+
 			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
 			tokenResponse := &auth0.TokenResponse{
 				AccessToken:      "accessToken",
 				RefreshToken:     "refreshToken",
 				ExpiresIn:        3600,
 				RefreshExpiresIn: 3600,
 			}
+			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(tokenResponse, tt.exchangeCodeErr).AnyTimes()
+
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+
 			_, err := authUsecase.ExchangeCode(tt.code, tt.redirectURI)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
@@ -132,16 +145,22 @@ func TestVerifyToken(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+
 			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
 			jwtToken := &jwt.Token{
 				Claims: tt.claims,
 			}
+			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().VerifyToken(tt.accessToken).Return(jwtToken, tt.verifyTokenErr).AnyTimes()
+
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+
 			_, err := authUsecase.VerifyToken(tt.accessToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
@@ -175,19 +194,25 @@ func TestRefreshToken(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+
 			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
 			tokenResponse := &auth0.TokenResponse{
 				AccessToken:      "accessToken",
 				RefreshToken:     "refreshToken",
 				ExpiresIn:        3600,
 				RefreshExpiresIn: 3600,
 			}
+			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
 			mockAuth0Client.EXPECT().RefreshToken(tt.refreshToken).Return(tokenResponse, tt.refreshTokenErr).AnyTimes()
+
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+
 			_, err := authUsecase.RefreshToken(tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
@@ -215,13 +240,19 @@ func TestRevokeToken(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+
 			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
 			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
 			mockAuth0Client.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
+
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+
 			err := authUsecase.RevokeToken(tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
@@ -255,13 +286,19 @@ func TestLogout(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+
 			mockKeycloakClient := mocksKeycloak.NewMockClient(ctrl)
 			mockAuth0Client := mocksAuth0.NewMockClient(ctrl)
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
 			mockAuth0Client.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
+
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+
 			_, err := authUsecase.Logout(tt.returnTo)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
