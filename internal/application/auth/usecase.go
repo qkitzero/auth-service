@@ -55,10 +55,7 @@ func (s *authUsecase) VerifyToken(accessToken string) (user.User, error) {
 		return nil, err
 	}
 
-	sub, err := verifiedToken.Claims.GetSubject()
-	if err != nil {
-		return nil, err
-	}
+	sub, _ := verifiedToken.Claims.GetSubject()
 
 	userID, err := user.NewUserID(sub)
 	if err != nil {
