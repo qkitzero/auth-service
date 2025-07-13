@@ -22,32 +22,32 @@ type Client interface {
 }
 
 type client struct {
-	BaseURL      string
-	ClientID     string
-	ClientSecret string
-	Realm        string
-	HTTPClient   *http.Client
+	baseURL      string
+	clientID     string
+	clientSecret string
+	realm        string
+	httpClient   *http.Client
 }
 
 func NewClient(baseURL, clientID, clientSecret, realm string) Client {
 	httpClient := http.Client{Timeout: 10 * time.Second}
 	return &client{
-		BaseURL:      baseURL,
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		Realm:        realm,
-		HTTPClient:   &httpClient,
+		baseURL:      baseURL,
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		realm:        realm,
+		httpClient:   &httpClient,
 	}
 }
 
 func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) {
-	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
+	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.baseURL, c.realm)
 
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("client_id", c.ClientID)
-	data.Set("client_secret", c.ClientSecret)
+	data.Set("client_id", c.clientID)
+	data.Set("client_secret", c.clientSecret)
 	data.Set("redirect_uri", redirectURI)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
@@ -56,7 +56,7 @@ func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) 
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -75,14 +75,14 @@ func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) 
 }
 
 func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
-	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", c.BaseURL, c.Realm)
+	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", c.baseURL, c.realm)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -151,13 +151,13 @@ func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
 }
 
 func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
-	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.BaseURL, c.Realm)
+	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.baseURL, c.realm)
 
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)
-	data.Set("client_id", c.ClientID)
-	data.Set("client_secret", c.ClientSecret)
+	data.Set("client_id", c.clientID)
+	data.Set("client_secret", c.clientSecret)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {
@@ -165,7 +165,7 @@ func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -184,11 +184,11 @@ func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
 }
 
 func (c *client) RevokeToken(refreshToken string) error {
-	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", c.BaseURL, c.Realm)
+	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", c.baseURL, c.realm)
 
 	data := url.Values{}
-	data.Set("client_id", c.ClientID)
-	data.Set("client_secret", c.ClientSecret)
+	data.Set("client_id", c.clientID)
+	data.Set("client_secret", c.clientSecret)
 	data.Set("refresh_token", refreshToken)
 
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
@@ -197,7 +197,7 @@ func (c *client) RevokeToken(refreshToken string) error {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.HTTPClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
