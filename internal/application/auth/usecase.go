@@ -1,10 +1,10 @@
 package auth
 
 import (
-	"github.com/qkitzero/auth/internal/domain/token"
-	"github.com/qkitzero/auth/internal/domain/user"
-	"github.com/qkitzero/auth/internal/infrastructure/api/auth0"
-	"github.com/qkitzero/auth/internal/infrastructure/api/keycloak"
+	"github.com/qkitzero/auth-service/internal/domain/token"
+	"github.com/qkitzero/auth-service/internal/domain/user"
+	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
+	"github.com/qkitzero/auth-service/internal/infrastructure/api/keycloak"
 )
 
 type AuthUsecase interface {
@@ -55,10 +55,7 @@ func (s *authUsecase) VerifyToken(accessToken string) (user.User, error) {
 		return nil, err
 	}
 
-	sub, err := verifiedToken.Claims.GetSubject()
-	if err != nil {
-		return nil, err
-	}
+	sub, _ := verifiedToken.Claims.GetSubject()
 
 	userID, err := user.NewUserID(sub)
 	if err != nil {

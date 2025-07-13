@@ -13,7 +13,7 @@ import (
 	reflect "reflect"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	auth0 "github.com/qkitzero/auth/internal/infrastructure/api/auth0"
+	auth0 "github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
 	gomock "go.uber.org/mock/gomock"
 )
 

@@ -13,7 +13,7 @@ import (
 	reflect "reflect"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	keycloak "github.com/qkitzero/auth/internal/infrastructure/api/keycloak"
+	keycloak "github.com/qkitzero/auth-service/internal/infrastructure/api/keycloak"
 	gomock "go.uber.org/mock/gomock"
 )
 
