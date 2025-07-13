@@ -32,7 +32,7 @@ func main() {
 	// )
 
 	auth0Client := auth0.NewClient(
-		util.GetEnv("AUTH0_DOMAIN", ""),
+		util.GetEnv("AUTH0_BASE_URL", ""),
 		util.GetEnv("AUTH0_CLIENT_ID", ""),
 		util.GetEnv("AUTH0_CLIENT_SECRET", ""),
 		util.GetEnv("AUTH0_AUDIENCE", ""),

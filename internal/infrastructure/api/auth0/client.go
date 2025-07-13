@@ -24,17 +24,17 @@ type Client interface {
 }
 
 type client struct {
-	domain       string
+	baseURL      string
 	clientID     string
 	clientSecret string
 	audience     string
 	httpClient   *http.Client
 }
 
-func NewClient(domain, clientID, clientSecret, audience string) Client {
+func NewClient(baseURL, clientID, clientSecret, audience string) Client {
 	httpClient := http.Client{Timeout: 10 * time.Second}
 	return &client{
-		domain:       domain,
+		baseURL:      baseURL,
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		audience:     audience,
@@ -43,7 +43,7 @@ func NewClient(domain, clientID, clientSecret, audience string) Client {
 }
 
 func (c *client) Login(redirectURI string) (string, error) {
-	endpoint := fmt.Sprintf("https://%s/authorize", c.domain)
+	endpoint := fmt.Sprintf("%s/authorize", c.baseURL)
 
 	params := url.Values{}
 	params.Set("client_id", c.clientID)
@@ -58,7 +58,7 @@ func (c *client) Login(redirectURI string) (string, error) {
 }
 
 func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) {
-	endpoint := fmt.Sprintf("https://%s/oauth/token", c.domain)
+	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
 
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
@@ -92,7 +92,7 @@ func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) 
 }
 
 func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
-	endpoint := fmt.Sprintf("https://%s/.well-known/jwks.json", c.domain)
+	endpoint := fmt.Sprintf("%s/.well-known/jwks.json", c.baseURL)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -170,7 +170,7 @@ func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
 }
 
 func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
-	endpoint := fmt.Sprintf("https://%s/oauth/token", c.domain)
+	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
 
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
@@ -203,7 +203,7 @@ func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
 }
 
 func (c *client) RevokeToken(refreshToken string) error {
-	endpoint := fmt.Sprintf("https://%s/oauth/revoke", c.domain)
+	endpoint := fmt.Sprintf("%s/oauth/revoke", c.baseURL)
 
 	data := url.Values{}
 	data.Set("client_id", c.clientID)
@@ -230,7 +230,7 @@ func (c *client) RevokeToken(refreshToken string) error {
 }
 
 func (c *client) Logout(returnTo string) (string, error) {
-	endpoint := fmt.Sprintf("https://%s/v2/logout", c.domain)
+	endpoint := fmt.Sprintf("%s/v2/logout", c.baseURL)
 
 	params := url.Values{}
 	params.Set("client_id", c.clientID)
