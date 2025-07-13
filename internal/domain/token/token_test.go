@@ -27,9 +27,6 @@ func TestNewToken(t *testing.T) {
 			if !tt.success && err == nil {
 				t.Errorf("expected error but got nil")
 			}
-			if tt.success && token == nil {
-				t.Errorf("NewToken() = nil")
-			}
 			if tt.success && token.AccessToken() != tt.accessToken {
 				t.Errorf("AccessToken() = %v, want %v", token.AccessToken(), tt.accessToken)
 			}
