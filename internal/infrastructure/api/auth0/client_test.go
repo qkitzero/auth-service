@@ -47,7 +47,7 @@ func TestLogin(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 
 			if tt.success && loginURL != tt.expectedLoginURL {
@@ -125,7 +125,7 @@ func TestExchangeCode(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 
 			if tt.success && !reflect.DeepEqual(token, tt.expectedToken) {
@@ -296,7 +296,7 @@ func TestVerifyToken(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 		})
 	}
@@ -365,7 +365,7 @@ func TestRefreshToken(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 
 			if tt.success && !reflect.DeepEqual(token, tt.expectedToken) {
@@ -415,7 +415,7 @@ func TestRevokeToken(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 		})
 	}
@@ -452,7 +452,7 @@ func TestLogout(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 
 			if tt.success && logoutURL != tt.expectedLogoutURL {
