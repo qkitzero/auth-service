@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -104,6 +105,17 @@ func TestExchangeCode(t *testing.T) {
 			code:        "code",
 			redirectURI: "http://localhost:3000/callback",
 			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			expectedToken: nil,
+		},
+		{
+			name:        "failure timeout",
+			success:     false,
+			code:        "code",
+			redirectURI: "http://localhost:3000/callback",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(10 * time.Second)
 				w.WriteHeader(http.StatusOK)
 			},
 			expectedToken: nil,
@@ -280,6 +292,15 @@ func TestVerifyToken(t *testing.T) {
 				})
 			},
 		},
+		{
+			name:        "failure timeout",
+			success:     false,
+			accessToken: accessToken,
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(10 * time.Second)
+				w.WriteHeader(http.StatusOK)
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -349,6 +370,16 @@ func TestRefreshToken(t *testing.T) {
 			},
 			expectedToken: nil,
 		},
+		{
+			name:         "failure timeout",
+			success:      false,
+			refreshToken: "refreshToken",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(10 * time.Second)
+				w.WriteHeader(http.StatusOK)
+			},
+			expectedToken: nil,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -397,6 +428,15 @@ func TestRevokeToken(t *testing.T) {
 			refreshToken: "refreshToken",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
+			},
+		},
+		{
+			name:         "failure timeout",
+			success:      false,
+			refreshToken: "refreshToken",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(10 * time.Second)
+				w.WriteHeader(http.StatusOK)
 			},
 		},
 	}
