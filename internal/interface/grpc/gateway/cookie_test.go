@@ -56,7 +56,7 @@ func TestSetRefreshTokenCookie(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 		})
 	}

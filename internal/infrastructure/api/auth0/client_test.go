@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -47,7 +48,7 @@ func TestLogin(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 
 			if tt.success && loginURL != tt.expectedLoginURL {
@@ -108,6 +109,17 @@ func TestExchangeCode(t *testing.T) {
 			},
 			expectedToken: nil,
 		},
+		{
+			name:        "failure timeout",
+			success:     false,
+			code:        "code",
+			redirectURI: "http://localhost:3000/callback",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(10 * time.Second)
+				w.WriteHeader(http.StatusOK)
+			},
+			expectedToken: nil,
+		},
 	}
 
 	for _, tt := range tests {
@@ -125,7 +137,7 @@ func TestExchangeCode(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 
 			if tt.success && !reflect.DeepEqual(token, tt.expectedToken) {
@@ -280,6 +292,15 @@ func TestVerifyToken(t *testing.T) {
 				})
 			},
 		},
+		{
+			name:        "failure timeout",
+			success:     false,
+			accessToken: accessToken,
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(10 * time.Second)
+				w.WriteHeader(http.StatusOK)
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -296,7 +317,7 @@ func TestVerifyToken(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 		})
 	}
@@ -349,6 +370,16 @@ func TestRefreshToken(t *testing.T) {
 			},
 			expectedToken: nil,
 		},
+		{
+			name:         "failure timeout",
+			success:      false,
+			refreshToken: "refreshToken",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(10 * time.Second)
+				w.WriteHeader(http.StatusOK)
+			},
+			expectedToken: nil,
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -365,7 +396,7 @@ func TestRefreshToken(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 
 			if tt.success && !reflect.DeepEqual(token, tt.expectedToken) {
@@ -399,6 +430,15 @@ func TestRevokeToken(t *testing.T) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
 		},
+		{
+			name:         "failure timeout",
+			success:      false,
+			refreshToken: "refreshToken",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(10 * time.Second)
+				w.WriteHeader(http.StatusOK)
+			},
+		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -415,7 +455,7 @@ func TestRevokeToken(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 		})
 	}
@@ -452,7 +492,7 @@ func TestLogout(t *testing.T) {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
-				t.Errorf("expected error but got nil")
+				t.Errorf("expected error, but got nil")
 			}
 
 			if tt.success && logoutURL != tt.expectedLogoutURL {
