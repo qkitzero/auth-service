@@ -1,0 +1,12 @@
+limits:
+  files: 15
+  lines:
+    "": 100
+    "build/": 100
+    "cmd/": 100
+    "internal/": 200
+    "proto/": 50
+    "util/": 100
+ignore:
+  - "gen/*"
+  - "mocks/*"
