@@ -1,7 +1,8 @@
 # Auth Service
 
-[![Go Test](https://github.com/qkitzero/auth-service/actions/workflows/test.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/qkitzero/auth-service/graph/badge.svg?token=VG4A2J9CTH)](https://codecov.io/gh/qkitzero/auth-service)
+[![release](https://img.shields.io/github/v/release/qkitzero/auth-service?logo=github)](https://github.com/qkitzero/auth-service/releases)
+[![test](https://github.com/qkitzero/auth-service/actions/workflows/test.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/qkitzero/auth-service/graph/badge.svg)](https://codecov.io/gh/qkitzero/auth-service)
 [![Buf CI](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml)
 
 - Keycloak
