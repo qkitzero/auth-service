@@ -1,6 +1,6 @@
 version: v2
 modules:
   - path: proto
-    name: buf.build/qkitzero/auth-service
+    name: buf.build/qkitzero-org/auth-service
 deps:
   - buf.build/googleapis/googleapis
