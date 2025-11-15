@@ -2,7 +2,8 @@
   "name": "@qkitzero/auth-service-openapi",
   "version": "0.0.0",
   "files": [
-    "gen/openapiv2/auth/v1/"
+    "gen/openapiv2/auth/v1/",
+    "README.npm.md"
   ],
   "repository": {
     "type": "git",
