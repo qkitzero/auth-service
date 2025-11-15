@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -29,6 +30,7 @@ func main() {
 	// 	util.GetEnv("KEYCLOAK_CLIENT_ID", ""),
 	// 	util.GetEnv("KEYCLOAK_CLIENT_SECRET", ""),
 	// 	util.GetEnv("KEYCLOAK_REALM", ""),
+	// 	10*time.Second,
 	// )
 
 	auth0Client := auth0.NewClient(
@@ -36,6 +38,7 @@ func main() {
 		util.GetEnv("AUTH0_CLIENT_ID", ""),
 		util.GetEnv("AUTH0_CLIENT_SECRET", ""),
 		util.GetEnv("AUTH0_AUDIENCE", ""),
+		10*time.Second,
 	)
 
 	authUsecase := appauth.NewAuthUsecase(nil, auth0Client)
