@@ -1,0 +1,14 @@
+{
+  "name": "@qkitzero/auth-service-openapi",
+  "version": "0.0.0",
+  "files": [
+    "gen/openapiv2/auth/v1/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qkitzero/auth-service.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}
