@@ -4,13 +4,14 @@
 [![test](https://github.com/qkitzero/auth-service/actions/workflows/test.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/qkitzero/auth-service/graph/badge.svg)](https://codecov.io/gh/qkitzero/auth-service)
 [![Buf CI](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml)
+[![OpenAPI](https://github.com/qkitzero/auth-service/actions/workflows/openapi.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/openapi.yml)
 
 - Keycloak
 - Auth0
 - Microservices Architecture
 - gRPC
 - gRPC Gateway
-- Buf ([buf.build/qkitzero/auth-service](https://buf.build/qkitzero/auth-service))
+- Buf ([buf.build/qkitzero-org/auth-service](https://buf.build/qkitzero-org/auth-service))
 - Clean Architecture
 - Docker
 - Test

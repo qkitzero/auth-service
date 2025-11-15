@@ -29,8 +29,8 @@ type client struct {
 	httpClient   *http.Client
 }
 
-func NewClient(baseURL, clientID, clientSecret, realm string) Client {
-	httpClient := http.Client{Timeout: 10 * time.Second}
+func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Duration) Client {
+	httpClient := http.Client{Timeout: timeout}
 	return &client{
 		baseURL:      baseURL,
 		clientID:     clientID,

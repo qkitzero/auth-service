@@ -72,7 +72,7 @@ func TestExchangeCode(t *testing.T) {
 			code:        "code",
 			redirectURI: "http://localhost:3000/callback",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(10 * time.Second)
+				time.Sleep(2 * time.Second)
 				w.WriteHeader(http.StatusOK)
 			},
 			expectedToken: nil,
@@ -87,7 +87,7 @@ func TestExchangeCode(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "realm")
+			client := NewClient(server.URL, "clientID", "clientSecret", "realm", 1*time.Second)
 
 			token, err := client.ExchangeCode(tt.code, tt.redirectURI)
 			if tt.success && err != nil {
@@ -254,7 +254,7 @@ func TestVerifyToken(t *testing.T) {
 			success:     false,
 			accessToken: accessToken,
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(10 * time.Second)
+				time.Sleep(2 * time.Second)
 				w.WriteHeader(http.StatusOK)
 			},
 		},
@@ -267,7 +267,7 @@ func TestVerifyToken(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "realm")
+			client := NewClient(server.URL, "clientID", "clientSecret", "realm", 1*time.Second)
 
 			_, err := client.VerifyToken(tt.accessToken)
 			if tt.success && err != nil {
@@ -332,7 +332,7 @@ func TestRefreshToken(t *testing.T) {
 			success:      false,
 			refreshToken: "refreshToken",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(10 * time.Second)
+				time.Sleep(2 * time.Second)
 				w.WriteHeader(http.StatusOK)
 			},
 			expectedToken: nil,
@@ -346,7 +346,7 @@ func TestRefreshToken(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "realm")
+			client := NewClient(server.URL, "clientID", "clientSecret", "realm", 1*time.Second)
 
 			token, err := client.RefreshToken(tt.refreshToken)
 			if tt.success && err != nil {
@@ -392,7 +392,7 @@ func TestRevokeToken(t *testing.T) {
 			success:      false,
 			refreshToken: "refreshToken",
 			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(10 * time.Second)
+				time.Sleep(2 * time.Second)
 				w.WriteHeader(http.StatusInternalServerError)
 			},
 		},
@@ -405,7 +405,7 @@ func TestRevokeToken(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "realm")
+			client := NewClient(server.URL, "clientID", "clientSecret", "realm", 1*time.Second)
 
 			err := client.RevokeToken(tt.refreshToken)
 			if tt.success && err != nil {
