@@ -7,7 +7,7 @@ proto-lint:
 proto-gen:
 	buf generate
 
-MOCK_GEN=go run go.uber.org/mock/mockgen@v0.5.0
+MOCK_GEN=go run go.uber.org/mock/mockgen@v0.6.0
 
 mock-gen:
 	$(MOCK_GEN) -source=internal/domain/user/user.go -destination=mocks/domain/user/mock_user.go -package=mocks
