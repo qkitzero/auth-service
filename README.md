@@ -20,6 +20,20 @@
 - Cloud Run
 
 ```mermaid
+classDiagram
+    direction LR
+
+    class Token {
+        accessToken
+    	refreshToken
+    }
+
+    class User {
+        id
+    }
+```
+
+```mermaid
 flowchart TD
     subgraph gcp[GCP]
         secret_manager[Secret Manager]
