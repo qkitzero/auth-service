@@ -25,7 +25,7 @@ classDiagram
 
     class Token {
         accessToken
-    	refreshToken
+        refreshToken
     }
 
     class User {
