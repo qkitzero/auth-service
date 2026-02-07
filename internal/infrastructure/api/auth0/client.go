@@ -21,24 +21,31 @@ type Client interface {
 	VerifyToken(accessToken string) (*jwt.Token, error)
 	RevokeToken(refreshToken string) error
 	Logout(returnTo string) (string, error)
+	GetM2MToken() (*TokenResponse, error)
 }
 
 type client struct {
-	baseURL      string
-	clientID     string
-	clientSecret string
-	audience     string
-	httpClient   *http.Client
+	baseURL         string
+	clientID        string
+	clientSecret    string
+	audience        string
+	m2mClientID     string
+	m2mClientSecret string
+	m2mAudience     string
+	httpClient      *http.Client
 }
 
-func NewClient(baseURL, clientID, clientSecret, audience string, timeout time.Duration) Client {
+func NewClient(baseURL, clientID, clientSecret, audience, m2mClientID, m2mClientSecret, m2mAudience string, timeout time.Duration) Client {
 	httpClient := http.Client{Timeout: timeout}
 	return &client{
-		baseURL:      baseURL,
-		clientID:     clientID,
-		clientSecret: clientSecret,
-		audience:     audience,
-		httpClient:   &httpClient,
+		baseURL:         baseURL,
+		clientID:        clientID,
+		clientSecret:    clientSecret,
+		audience:        audience,
+		m2mClientID:     m2mClientID,
+		m2mClientSecret: m2mClientSecret,
+		m2mAudience:     m2mAudience,
+		httpClient:      &httpClient,
 	}
 }
 
@@ -237,4 +244,37 @@ func (c *client) Logout(returnTo string) (string, error) {
 	logoutURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
 
 	return logoutURL, nil
+}
+
+func (c *client) GetM2MToken() (*TokenResponse, error) {
+	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
+
+	data := url.Values{}
+	data.Set("grant_type", "client_credentials")
+	data.Set("client_id", c.m2mClientID)
+	data.Set("client_secret", c.m2mClientSecret)
+	data.Set("audience", c.m2mAudience)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get m2m token, status: %d", resp.StatusCode)
+	}
+
+	var tokenResponse TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return nil, err
+	}
+
+	return &tokenResponse, nil
 }
