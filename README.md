@@ -6,8 +6,10 @@
 [![Buf CI](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml)
 [![OpenAPI](https://github.com/qkitzero/auth-service/actions/workflows/openapi.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/openapi.yml)
 
-- Keycloak
 - Auth0
+  - Authorization Code Grant
+  - Client Credentials Grant
+- ~~Keycloak~~
 - Microservices Architecture
 - gRPC
 - gRPC Gateway
@@ -26,6 +28,10 @@ classDiagram
     class Token {
         accessToken
         refreshToken
+    }
+
+    class M2MToken {
+        accessToken
     }
 
     class User {
