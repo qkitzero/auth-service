@@ -43,6 +43,7 @@ service AuthService {
       body: "*"
     };
   }
+  rpc GetM2MToken(GetM2MTokenRequest) returns (GetM2MTokenResponse) {}
 }
 
 message LoginRequest {
@@ -85,4 +86,10 @@ message LogoutRequest {
 
 message LogoutResponse {
   string logout_url = 1;
+}
+
+message GetM2MTokenRequest {}
+
+message GetM2MTokenResponse {
+  string access_token = 1;
 }
