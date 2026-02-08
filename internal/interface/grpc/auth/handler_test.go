@@ -119,7 +119,8 @@ func TestExchangeCode(t *testing.T) {
 			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(mockToken, tt.exchangeCodeForTokenErr).AnyTimes()
 			mockAuthUsecase.EXPECT().VerifyToken("accessToken").Return(mockUser, tt.verifyTokenErr).AnyTimes()
-			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
+			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
+			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
 			mockToken.EXPECT().AccessToken().Return("accessToken").AnyTimes()
 			mockToken.EXPECT().RefreshToken().Return("refreshToken").AnyTimes()
 
@@ -198,7 +199,8 @@ func TestVerifyToken(t *testing.T) {
 			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().VerifyToken(tt.accessToken).Return(mockUser, tt.verifyTokenErr).AnyTimes()
-			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
+			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
+			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
@@ -333,7 +335,8 @@ func TestRevokeToken(t *testing.T) {
 			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
-			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
+			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
+			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
@@ -392,55 +395,6 @@ func TestLogout(t *testing.T) {
 			}
 
 			_, err := authHandler.Logout(tt.ctx, req)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
-			}
-		})
-	}
-}
-
-func TestGetM2MToken(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name           string
-		success        bool
-		ctx            context.Context
-		getM2MTokenErr error
-	}{
-		{
-			name:           "success get m2m token",
-			success:        true,
-			ctx:            context.Background(),
-			getM2MTokenErr: nil,
-		},
-		{
-			name:           "failure get m2m token error",
-			success:        false,
-			ctx:            context.Background(),
-			getM2MTokenErr: errors.New("get m2m token error"),
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
-			mockM2MToken := mockstoken.NewMockM2MToken(ctrl)
-			mockAuthUsecase.EXPECT().GetM2MToken().Return(mockM2MToken, tt.getM2MTokenErr).AnyTimes()
-			mockM2MToken.EXPECT().AccessToken().Return("m2mAccessToken").AnyTimes()
-
-			authHandler := NewAuthHandler(mockAuthUsecase)
-
-			req := &authv1.GetM2MTokenRequest{}
-
-			_, err := authHandler.GetM2MToken(tt.ctx, req)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
