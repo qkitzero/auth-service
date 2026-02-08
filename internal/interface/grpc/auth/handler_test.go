@@ -119,8 +119,7 @@ func TestExchangeCode(t *testing.T) {
 			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(mockToken, tt.exchangeCodeForTokenErr).AnyTimes()
 			mockAuthUsecase.EXPECT().VerifyToken("accessToken").Return(mockUser, tt.verifyTokenErr).AnyTimes()
-			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
-			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
+			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
 			mockToken.EXPECT().AccessToken().Return("accessToken").AnyTimes()
 			mockToken.EXPECT().RefreshToken().Return("refreshToken").AnyTimes()
 
@@ -199,8 +198,7 @@ func TestVerifyToken(t *testing.T) {
 			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().VerifyToken(tt.accessToken).Return(mockUser, tt.verifyTokenErr).AnyTimes()
-			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
-			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
+			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
@@ -335,8 +333,7 @@ func TestRevokeToken(t *testing.T) {
 			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockUser := mocksuser.NewMockUser(ctrl)
 			mockAuthUsecase.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
-			mockUserID, _ := user.NewUserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")
-			mockUser.EXPECT().ID().Return(mockUserID).AnyTimes()
+			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
 
 			authHandler := NewAuthHandler(mockAuthUsecase)
 
