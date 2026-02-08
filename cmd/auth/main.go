@@ -38,9 +38,6 @@ func main() {
 		util.GetEnv("AUTH0_CLIENT_ID", ""),
 		util.GetEnv("AUTH0_CLIENT_SECRET", ""),
 		util.GetEnv("AUTH0_AUDIENCE", ""),
-		util.GetEnv("AUTH0_M2M_CLIENT_ID", ""),
-		util.GetEnv("AUTH0_M2M_CLIENT_SECRET", ""),
-		util.GetEnv("AUTH0_M2M_AUDIENCE", ""),
 		10*time.Second,
 	)
 

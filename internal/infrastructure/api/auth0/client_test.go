@@ -41,7 +41,7 @@ func TestLogin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			client := NewClient(tt.baseURL, tt.clientID, "clientSecret", tt.audience, "m2mClientID", "m2mClientSecret", "m2mAudience", 1*time.Second)
+			client := NewClient(tt.baseURL, tt.clientID, "clientSecret", tt.audience, 1*time.Second)
 
 			loginURL, err := client.Login(tt.redirectURI)
 			if tt.success && err != nil {
@@ -130,7 +130,7 @@ func TestExchangeCode(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", "m2mClientID", "m2mClientSecret", "m2mAudience", 1*time.Second)
+			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
 			token, err := client.ExchangeCode(tt.code, tt.redirectURI)
 			if tt.success && err != nil {
@@ -310,7 +310,7 @@ func TestVerifyToken(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", "m2mClientID", "m2mClientSecret", "m2mAudience", 1*time.Second)
+			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
 			_, err := client.VerifyToken(tt.accessToken)
 			if tt.success && err != nil {
@@ -389,7 +389,7 @@ func TestRefreshToken(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", "m2mClientID", "m2mClientSecret", "m2mAudience", 1*time.Second)
+			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
 			token, err := client.RefreshToken(tt.refreshToken)
 			if tt.success && err != nil {
@@ -448,7 +448,7 @@ func TestRevokeToken(t *testing.T) {
 			server := httptest.NewServer(tt.handler)
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", "m2mClientID", "m2mClientSecret", "m2mAudience", 1*time.Second)
+			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
 			err := client.RevokeToken(tt.refreshToken)
 			if tt.success && err != nil {
@@ -485,7 +485,7 @@ func TestLogout(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			client := NewClient(tt.baseURL, tt.clientID, "clientSecret", "audience", "m2mClientID", "m2mClientSecret", "m2mAudience", 1*time.Second)
+			client := NewClient(tt.baseURL, tt.clientID, "clientSecret", "audience", 1*time.Second)
 
 			logoutURL, err := client.Logout(tt.returnTo)
 			if tt.success && err != nil {
@@ -497,81 +497,6 @@ func TestLogout(t *testing.T) {
 
 			if tt.success && logoutURL != tt.expectedLogoutURL {
 				t.Errorf("expected logout URL %s, got %s", tt.expectedLogoutURL, logoutURL)
-			}
-		})
-	}
-}
-
-func TestGetM2MToken(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name          string
-		success       bool
-		handler       http.HandlerFunc
-		expectedToken *TokenResponse
-	}{
-		{
-			name:    "success get m2m token",
-			success: true,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(&TokenResponse{
-					AccessToken: "m2mAccessToken",
-					ExpiresIn:   86400,
-				})
-			},
-			expectedToken: &TokenResponse{
-				AccessToken: "m2mAccessToken",
-				ExpiresIn:   86400,
-			},
-		},
-		{
-			name:    "failure auth0 error",
-			success: false,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
-			},
-			expectedToken: nil,
-		},
-		{
-			name:    "failure auth0 json error",
-			success: false,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			},
-			expectedToken: nil,
-		},
-		{
-			name:    "failure timeout",
-			success: false,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(2 * time.Second)
-				w.WriteHeader(http.StatusOK)
-			},
-			expectedToken: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			server := httptest.NewServer(tt.handler)
-			defer server.Close()
-
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", "m2mClientID", "m2mClientSecret", "m2mAudience", 1*time.Second)
-
-			token, err := client.GetM2MToken()
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
-			}
-
-			if tt.success && !reflect.DeepEqual(token, tt.expectedToken) {
-				t.Errorf("expected token %+v, got %+v", tt.expectedToken, token)
 			}
 		})
 	}

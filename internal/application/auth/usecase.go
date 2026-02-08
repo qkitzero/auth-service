@@ -14,7 +14,6 @@ type AuthUsecase interface {
 	RefreshToken(refreshToken string) (token.Token, error)
 	RevokeToken(refreshToken string) error
 	Logout(returnTo string) (string, error)
-	GetM2MToken() (token.M2MToken, error)
 }
 
 type authUsecase struct {
@@ -86,13 +85,4 @@ func (s *authUsecase) Logout(returnTo string) (string, error) {
 	}
 
 	return url, nil
-}
-
-func (s *authUsecase) GetM2MToken() (token.M2MToken, error) {
-	tokenResponse, err := s.auth0Client.GetM2MToken()
-	if err != nil {
-		return nil, err
-	}
-
-	return token.NewM2MToken(tokenResponse.AccessToken)
 }

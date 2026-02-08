@@ -25,7 +25,6 @@ const (
 	AuthService_RefreshToken_FullMethodName = "/auth.v1.AuthService/RefreshToken"
 	AuthService_RevokeToken_FullMethodName  = "/auth.v1.AuthService/RevokeToken"
 	AuthService_Logout_FullMethodName       = "/auth.v1.AuthService/Logout"
-	AuthService_GetM2MToken_FullMethodName  = "/auth.v1.AuthService/GetM2MToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -38,7 +37,6 @@ type AuthServiceClient interface {
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
 	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
-	GetM2MToken(ctx context.Context, in *GetM2MTokenRequest, opts ...grpc.CallOption) (*GetM2MTokenResponse, error)
 }
 
 type authServiceClient struct {
@@ -109,16 +107,6 @@ func (c *authServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts 
 	return out, nil
 }
 
-func (c *authServiceClient) GetM2MToken(ctx context.Context, in *GetM2MTokenRequest, opts ...grpc.CallOption) (*GetM2MTokenResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetM2MTokenResponse)
-	err := c.cc.Invoke(ctx, AuthService_GetM2MToken_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -129,7 +117,6 @@ type AuthServiceServer interface {
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
-	GetM2MToken(context.Context, *GetM2MTokenRequest) (*GetM2MTokenResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -157,9 +144,6 @@ func (UnimplementedAuthServiceServer) RevokeToken(context.Context, *RevokeTokenR
 }
 func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
-}
-func (UnimplementedAuthServiceServer) GetM2MToken(context.Context, *GetM2MTokenRequest) (*GetM2MTokenResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetM2MToken not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -290,24 +274,6 @@ func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_GetM2MToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetM2MTokenRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).GetM2MToken(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_GetM2MToken_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).GetM2MToken(ctx, req.(*GetM2MTokenRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -338,10 +304,6 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Logout",
 			Handler:    _AuthService_Logout_Handler,
-		},
-		{
-			MethodName: "GetM2MToken",
-			Handler:    _AuthService_GetM2MToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
