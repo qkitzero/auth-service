@@ -112,6 +112,38 @@
         ]
       }
     },
+    "/v1/m2m-token": {
+      "post": {
+        "operationId": "AuthService_GetM2MToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetM2MTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GetM2MTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
     "/v1/refresh": {
       "post": {
         "operationId": "AuthService_RefreshToken",
@@ -255,6 +287,25 @@
         "userId": {
           "type": "string"
         },
+        "accessToken": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetM2MTokenRequest": {
+      "type": "object",
+      "properties": {
+        "clientId": {
+          "type": "string"
+        },
+        "clientSecret": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetM2MTokenResponse": {
+      "type": "object",
+      "properties": {
         "accessToken": {
           "type": "string"
         }

@@ -7,6 +7,8 @@
 [![OpenAPI](https://github.com/qkitzero/auth-service/actions/workflows/openapi.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/openapi.yml)
 
 - Auth0
+  - Authorization Code Grant
+  - Client Credentials Grant
 - ~~Keycloak~~
 - Microservices Architecture
 - gRPC
@@ -26,6 +28,10 @@ classDiagram
     class Token {
         accessToken
         refreshToken
+    }
+
+    class M2MToken {
+        accessToken
     }
 
     class User {

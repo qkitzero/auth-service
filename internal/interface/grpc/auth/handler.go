@@ -134,3 +134,14 @@ func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*a
 		LogoutUrl: url,
 	}, nil
 }
+
+func (h *AuthHandler) GetM2MToken(ctx context.Context, req *authv1.GetM2MTokenRequest) (*authv1.GetM2MTokenResponse, error) {
+	m2mToken, err := h.authUsecase.GetM2MToken(req.GetClientId(), req.GetClientSecret())
+	if err != nil {
+		return nil, err
+	}
+
+	return &authv1.GetM2MTokenResponse{
+		AccessToken: m2mToken.AccessToken(),
+	}, nil
+}

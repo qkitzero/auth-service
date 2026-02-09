@@ -43,6 +43,12 @@ service AuthService {
       body: "*"
     };
   }
+  rpc GetM2MToken(GetM2MTokenRequest) returns (GetM2MTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/m2m-token"
+      body: "*"
+    };
+  }
 }
 
 message LoginRequest {
@@ -85,4 +91,13 @@ message LogoutRequest {
 
 message LogoutResponse {
   string logout_url = 1;
+}
+
+message GetM2MTokenRequest {
+  string client_id = 1;
+  string client_secret = 2;
+}
+
+message GetM2MTokenResponse {
+  string access_token = 1;
 }
