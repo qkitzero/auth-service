@@ -56,6 +56,21 @@ func (mr *MockAuthUsecaseMockRecorder) ExchangeCode(code, redirectURI any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExchangeCode", reflect.TypeOf((*MockAuthUsecase)(nil).ExchangeCode), code, redirectURI)
 }
 
+// GetM2MToken mocks base method.
+func (m *MockAuthUsecase) GetM2MToken(clientID, clientSecret string) (token.M2MToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetM2MToken", clientID, clientSecret)
+	ret0, _ := ret[0].(token.M2MToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetM2MToken indicates an expected call of GetM2MToken.
+func (mr *MockAuthUsecaseMockRecorder) GetM2MToken(clientID, clientSecret any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetM2MToken", reflect.TypeOf((*MockAuthUsecase)(nil).GetM2MToken), clientID, clientSecret)
+}
+
 // Login mocks base method.
 func (m *MockAuthUsecase) Login(redirectURI string) (string, error) {
 	m.ctrl.T.Helper()

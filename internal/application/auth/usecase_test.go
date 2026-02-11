@@ -309,3 +309,56 @@ func TestLogout(t *testing.T) {
 		})
 	}
 }
+
+func TestGetM2MToken(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		success        bool
+		clientID       string
+		clientSecret   string
+		getM2MTokenErr error
+	}{
+		{
+			name:           "success get m2m token",
+			success:        true,
+			clientID:       "m2mClientID",
+			clientSecret:   "m2mClientSecret",
+			getM2MTokenErr: nil,
+		},
+		{
+			name:           "failure get m2m token error",
+			success:        false,
+			clientID:       "m2mClientID",
+			clientSecret:   "m2mClientSecret",
+			getM2MTokenErr: errors.New("get m2m token error"),
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
+			tokenResponse := &auth0.TokenResponse{
+				AccessToken: "m2mAccessToken",
+				ExpiresIn:   86400,
+			}
+			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
+			mockAuth0Client.EXPECT().GetM2MToken(tt.clientID, tt.clientSecret).Return(tokenResponse, tt.getM2MTokenErr).AnyTimes()
+
+			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+
+			_, err := authUsecase.GetM2MToken(tt.clientID, tt.clientSecret)
+			if tt.success && err != nil {
+				t.Errorf("expected no error, but got %v", err)
+			}
+			if !tt.success && err == nil {
+				t.Errorf("expected error, but got nil")
+			}
+		})
+	}
+}

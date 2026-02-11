@@ -21,6 +21,7 @@ type Client interface {
 	VerifyToken(accessToken string) (*jwt.Token, error)
 	RevokeToken(refreshToken string) error
 	Logout(returnTo string) (string, error)
+	GetM2MToken(clientID, clientSecret string) (*TokenResponse, error)
 }
 
 type client struct {
@@ -237,4 +238,37 @@ func (c *client) Logout(returnTo string) (string, error) {
 	logoutURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
 
 	return logoutURL, nil
+}
+
+func (c *client) GetM2MToken(clientID, clientSecret string) (*TokenResponse, error) {
+	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
+
+	data := url.Values{}
+	data.Set("grant_type", "client_credentials")
+	data.Set("client_id", clientID)
+	data.Set("client_secret", clientSecret)
+	data.Set("audience", c.audience)
+
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get m2m token, status: %d", resp.StatusCode)
+	}
+
+	var tokenResponse TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return nil, err
+	}
+
+	return &tokenResponse, nil
 }
