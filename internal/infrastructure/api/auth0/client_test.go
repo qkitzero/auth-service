@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"net/http"
+	"reflect"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -139,11 +140,8 @@ func TestExchangeCode(t *testing.T) {
 				t.Errorf("expected error, but got nil")
 			}
 
-			if tt.success && token.AccessToken != tt.expected.AccessToken {
-				t.Errorf("AccessToken() = %v, want %v", token.AccessToken, tt.expected.AccessToken)
-			}
-			if tt.success && token.RefreshToken != tt.expected.RefreshToken {
-				t.Errorf("RefreshToken() = %v, want %v", token.RefreshToken, tt.expected.RefreshToken)
+			if tt.success && !reflect.DeepEqual(token, tt.expected) {
+				t.Errorf("token = %v, want %v", token, tt.expected)
 			}
 		})
 	}
@@ -399,11 +397,8 @@ func TestRefreshToken(t *testing.T) {
 				t.Errorf("expected error, but got nil")
 			}
 
-			if tt.success && token.AccessToken != tt.expected.AccessToken {
-				t.Errorf("AccessToken() = %v, want %v", token.AccessToken, tt.expected.AccessToken)
-			}
-			if tt.success && token.RefreshToken != tt.expected.RefreshToken {
-				t.Errorf("RefreshToken() = %v, want %v", token.RefreshToken, tt.expected.RefreshToken)
+			if tt.success && !reflect.DeepEqual(token, tt.expected) {
+				t.Errorf("token = %v, want %v", token, tt.expected)
 			}
 		})
 	}
@@ -572,8 +567,8 @@ func TestGetM2MToken(t *testing.T) {
 				t.Errorf("expected error, but got nil")
 			}
 
-			if tt.success && token.AccessToken != tt.expected.AccessToken {
-				t.Errorf("AccessToken() = %v, want %v", token.AccessToken, tt.expected.AccessToken)
+			if tt.success && !reflect.DeepEqual(token, tt.expected) {
+				t.Errorf("token = %v, want %v", token, tt.expected)
 			}
 		})
 	}
