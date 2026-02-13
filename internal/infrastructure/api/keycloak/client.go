@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -24,7 +25,7 @@ type client struct {
 	httpClient   *http.Client
 }
 
-func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Duration) *client {
+func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Duration) identity.Provider {
 	httpClient := http.Client{Timeout: timeout}
 	return &client{
 		baseURL:      baseURL,
@@ -33,6 +34,10 @@ func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Durat
 		realm:        realm,
 		httpClient:   &httpClient,
 	}
+}
+
+func (c *client) Login(redirectURI string) (string, error) {
+	return "", errors.New("not implemented")
 }
 
 func (c *client) ExchangeCode(code, redirectURI string) (*identity.TokenResult, error) {
@@ -214,4 +219,12 @@ func (c *client) RevokeToken(refreshToken string) error {
 	}
 
 	return nil
+}
+
+func (c *client) Logout(returnTo string) (string, error) {
+	return "", errors.New("not implemented")
+}
+
+func (c *client) GetM2MToken(clientID, clientSecret string) (*identity.TokenResult, error) {
+	return nil, errors.New("not implemented")
 }
