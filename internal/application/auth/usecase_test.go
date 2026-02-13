@@ -4,12 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/mock/gomock"
 
-	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
-	mocksauth0 "github.com/qkitzero/auth-service/mocks/infrastructure/api/auth0"
-	mockskeycloak "github.com/qkitzero/auth-service/mocks/infrastructure/api/keycloak"
+	"github.com/qkitzero/auth-service/internal/application/identity"
+	mocks "github.com/qkitzero/auth-service/mocks/application/identity"
 )
 
 func TestLogin(t *testing.T) {
@@ -41,11 +39,10 @@ func TestLogin(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
-			mockAuth0Client.EXPECT().Login(tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
+			mockIdentityProvider := mocks.NewMockProvider(ctrl)
+			mockIdentityProvider.EXPECT().Login(tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
 
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
 			_, err := authUsecase.Login(tt.redirectURI)
 			if tt.success && err != nil {
@@ -65,6 +62,7 @@ func TestExchangeCode(t *testing.T) {
 		success         bool
 		code            string
 		redirectURI     string
+		tokenResult     *identity.TokenResult
 		exchangeCodeErr error
 	}{
 		{
@@ -72,6 +70,7 @@ func TestExchangeCode(t *testing.T) {
 			success:         true,
 			code:            "code",
 			redirectURI:     "http://localhost:3000/callback",
+			tokenResult:     &identity.TokenResult{AccessToken: "accessToken", RefreshToken: "refreshToken"},
 			exchangeCodeErr: nil,
 		},
 		{
@@ -79,6 +78,7 @@ func TestExchangeCode(t *testing.T) {
 			success:         false,
 			code:            "code",
 			redirectURI:     "http://localhost:3000/callback",
+			tokenResult:     &identity.TokenResult{AccessToken: "accessToken", RefreshToken: "refreshToken"},
 			exchangeCodeErr: errors.New("exchange code error"),
 		},
 	}
@@ -90,17 +90,10 @@ func TestExchangeCode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
-			tokenResponse := &auth0.TokenResponse{
-				AccessToken:      "accessToken",
-				RefreshToken:     "refreshToken",
-				ExpiresIn:        3600,
-				RefreshExpiresIn: 3600,
-			}
-			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
-			mockAuth0Client.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(tokenResponse, tt.exchangeCodeErr).AnyTimes()
+			mockIdentityProvider := mocks.NewMockProvider(ctrl)
+			mockIdentityProvider.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(tt.tokenResult, tt.exchangeCodeErr).AnyTimes()
 
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
 			_, err := authUsecase.ExchangeCode(tt.code, tt.redirectURI)
 			if tt.success && err != nil {
@@ -119,28 +112,28 @@ func TestVerifyToken(t *testing.T) {
 		name           string
 		success        bool
 		accessToken    string
-		claims         jwt.Claims
+		verifyResult   *identity.VerifyResult
 		verifyTokenErr error
 	}{
 		{
 			name:           "success verify token",
 			success:        true,
 			accessToken:    "accessToken",
-			claims:         jwt.MapClaims{"sub": "126ff835-d63f-4f44-a3aa-b5e530b98991"},
+			verifyResult:   &identity.VerifyResult{Subject: "126ff835-d63f-4f44-a3aa-b5e530b98991"},
 			verifyTokenErr: nil,
 		},
 		{
 			name:           "failure verify token error",
 			success:        false,
 			accessToken:    "accessToken",
-			claims:         jwt.MapClaims{"sub": "126ff835-d63f-4f44-a3aa-b5e530b98991"},
+			verifyResult:   &identity.VerifyResult{Subject: "126ff835-d63f-4f44-a3aa-b5e530b98991"},
 			verifyTokenErr: errors.New("verify token error"),
 		},
 		{
-			name:           "failure invalid sub",
+			name:           "failure empty subject",
 			success:        false,
 			accessToken:    "accessToken",
-			claims:         jwt.MapClaims{"sub": ""},
+			verifyResult:   &identity.VerifyResult{Subject: ""},
 			verifyTokenErr: nil,
 		},
 	}
@@ -152,14 +145,10 @@ func TestVerifyToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
-			jwtToken := &jwt.Token{
-				Claims: tt.claims,
-			}
-			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
-			mockAuth0Client.EXPECT().VerifyToken(tt.accessToken).Return(jwtToken, tt.verifyTokenErr).AnyTimes()
+			mockIdentityProvider := mocks.NewMockProvider(ctrl)
+			mockIdentityProvider.EXPECT().VerifyToken(tt.accessToken).Return(tt.verifyResult, tt.verifyTokenErr).AnyTimes()
 
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
 			_, err := authUsecase.VerifyToken(tt.accessToken)
 			if tt.success && err != nil {
@@ -178,18 +167,21 @@ func TestRefreshToken(t *testing.T) {
 		name            string
 		success         bool
 		refreshToken    string
+		tokenResult     *identity.TokenResult
 		refreshTokenErr error
 	}{
 		{
 			name:            "success refresh token",
 			success:         true,
 			refreshToken:    "refreshToken",
+			tokenResult:     &identity.TokenResult{AccessToken: "accessToken", RefreshToken: "refreshToken"},
 			refreshTokenErr: nil,
 		},
 		{
 			name:            "failure refresh token error",
 			success:         false,
 			refreshToken:    "refreshToken",
+			tokenResult:     &identity.TokenResult{AccessToken: "accessToken", RefreshToken: "refreshToken"},
 			refreshTokenErr: errors.New("refresh token error"),
 		},
 	}
@@ -201,17 +193,10 @@ func TestRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
-			tokenResponse := &auth0.TokenResponse{
-				AccessToken:      "accessToken",
-				RefreshToken:     "refreshToken",
-				ExpiresIn:        3600,
-				RefreshExpiresIn: 3600,
-			}
-			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
-			mockAuth0Client.EXPECT().RefreshToken(tt.refreshToken).Return(tokenResponse, tt.refreshTokenErr).AnyTimes()
+			mockIdentityProvider := mocks.NewMockProvider(ctrl)
+			mockIdentityProvider.EXPECT().RefreshToken(tt.refreshToken).Return(tt.tokenResult, tt.refreshTokenErr).AnyTimes()
 
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
 			_, err := authUsecase.RefreshToken(tt.refreshToken)
 			if tt.success && err != nil {
@@ -247,11 +232,10 @@ func TestRevokeToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
-			mockAuth0Client.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
+			mockIdentityProvider := mocks.NewMockProvider(ctrl)
+			mockIdentityProvider.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
 
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
 			err := authUsecase.RevokeToken(tt.refreshToken)
 			if tt.success && err != nil {
@@ -293,11 +277,10 @@ func TestLogout(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
-			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
-			mockAuth0Client.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
+			mockIdentityProvider := mocks.NewMockProvider(ctrl)
+			mockIdentityProvider.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
 
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
 			_, err := authUsecase.Logout(tt.returnTo)
 			if tt.success && err != nil {
@@ -317,6 +300,7 @@ func TestGetM2MToken(t *testing.T) {
 		success        bool
 		clientID       string
 		clientSecret   string
+		tokenResult    *identity.TokenResult
 		getM2MTokenErr error
 	}{
 		{
@@ -324,6 +308,7 @@ func TestGetM2MToken(t *testing.T) {
 			success:        true,
 			clientID:       "m2mClientID",
 			clientSecret:   "m2mClientSecret",
+			tokenResult:    &identity.TokenResult{AccessToken: "m2mAccessToken"},
 			getM2MTokenErr: nil,
 		},
 		{
@@ -331,6 +316,7 @@ func TestGetM2MToken(t *testing.T) {
 			success:        false,
 			clientID:       "m2mClientID",
 			clientSecret:   "m2mClientSecret",
+			tokenResult:    &identity.TokenResult{AccessToken: "m2mAccessToken"},
 			getM2MTokenErr: errors.New("get m2m token error"),
 		},
 	}
@@ -342,15 +328,10 @@ func TestGetM2MToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockKeycloakClient := mockskeycloak.NewMockClient(ctrl)
-			tokenResponse := &auth0.TokenResponse{
-				AccessToken: "m2mAccessToken",
-				ExpiresIn:   86400,
-			}
-			mockAuth0Client := mocksauth0.NewMockClient(ctrl)
-			mockAuth0Client.EXPECT().GetM2MToken(tt.clientID, tt.clientSecret).Return(tokenResponse, tt.getM2MTokenErr).AnyTimes()
+			mockIdentityProvider := mocks.NewMockProvider(ctrl)
+			mockIdentityProvider.EXPECT().GetM2MToken(tt.clientID, tt.clientSecret).Return(tt.tokenResult, tt.getM2MTokenErr).AnyTimes()
 
-			authUsecase := NewAuthUsecase(mockKeycloakClient, mockAuth0Client)
+			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
 			_, err := authUsecase.GetM2MToken(tt.clientID, tt.clientSecret)
 			if tt.success && err != nil {

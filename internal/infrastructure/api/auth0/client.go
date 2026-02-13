@@ -12,17 +12,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-)
 
-type Client interface {
-	Login(redirectURI string) (string, error)
-	ExchangeCode(code, redirectURI string) (*TokenResponse, error)
-	RefreshToken(refreshToken string) (*TokenResponse, error)
-	VerifyToken(accessToken string) (*jwt.Token, error)
-	RevokeToken(refreshToken string) error
-	Logout(returnTo string) (string, error)
-	GetM2MToken(clientID, clientSecret string) (*TokenResponse, error)
-}
+	"github.com/qkitzero/auth-service/internal/application/identity"
+)
 
 type client struct {
 	baseURL      string
@@ -32,7 +24,7 @@ type client struct {
 	httpClient   *http.Client
 }
 
-func NewClient(baseURL, clientID, clientSecret, audience string, timeout time.Duration) Client {
+func NewClient(baseURL, clientID, clientSecret, audience string, timeout time.Duration) identity.Provider {
 	httpClient := http.Client{Timeout: timeout}
 	return &client{
 		baseURL:      baseURL,
@@ -58,7 +50,7 @@ func (c *client) Login(redirectURI string) (string, error) {
 	return loginURL, nil
 }
 
-func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) {
+func (c *client) ExchangeCode(code, redirectURI string) (*identity.TokenResult, error) {
 	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
 
 	data := url.Values{}
@@ -89,10 +81,13 @@ func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) 
 		return nil, err
 	}
 
-	return &tokenResponse, nil
+	return &identity.TokenResult{
+		AccessToken:  tokenResponse.AccessToken,
+		RefreshToken: tokenResponse.RefreshToken,
+	}, nil
 }
 
-func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
+func (c *client) VerifyToken(accessToken string) (*identity.VerifyResult, error) {
 	endpoint := fmt.Sprintf("%s/.well-known/jwks.json", c.baseURL)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -165,10 +160,15 @@ func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	return parsedToken, nil
+	subject, err := parsedToken.Claims.GetSubject()
+	if err != nil {
+		return nil, err
+	}
+
+	return &identity.VerifyResult{Subject: subject}, nil
 }
 
-func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
+func (c *client) RefreshToken(refreshToken string) (*identity.TokenResult, error) {
 	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
 
 	data := url.Values{}
@@ -198,7 +198,10 @@ func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
 		return nil, err
 	}
 
-	return &tokenResponse, nil
+	return &identity.TokenResult{
+		AccessToken:  tokenResponse.AccessToken,
+		RefreshToken: tokenResponse.RefreshToken,
+	}, nil
 }
 
 func (c *client) RevokeToken(refreshToken string) error {
@@ -240,7 +243,7 @@ func (c *client) Logout(returnTo string) (string, error) {
 	return logoutURL, nil
 }
 
-func (c *client) GetM2MToken(clientID, clientSecret string) (*TokenResponse, error) {
+func (c *client) GetM2MToken(clientID, clientSecret string) (*identity.TokenResult, error) {
 	endpoint := fmt.Sprintf("%s/oauth/token", c.baseURL)
 
 	data := url.Values{}
@@ -270,5 +273,7 @@ func (c *client) GetM2MToken(clientID, clientSecret string) (*TokenResponse, err
 		return nil, err
 	}
 
-	return &tokenResponse, nil
+	return &identity.TokenResult{
+		AccessToken: tokenResponse.AccessToken,
+	}, nil
 }

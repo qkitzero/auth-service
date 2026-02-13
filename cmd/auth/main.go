@@ -41,7 +41,7 @@ func main() {
 		10*time.Second,
 	)
 
-	authUsecase := appauth.NewAuthUsecase(nil, auth0Client)
+	authUsecase := appauth.NewAuthUsecase(auth0Client)
 
 	healthServer := health.NewServer()
 	tokenHandler := infraauth.NewAuthHandler(authUsecase)
