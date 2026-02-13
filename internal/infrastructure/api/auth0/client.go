@@ -156,10 +156,6 @@ func (c *client) VerifyToken(accessToken string) (*identity.VerifyResult, error)
 		return nil, err
 	}
 
-	if !parsedToken.Valid {
-		return nil, fmt.Errorf("invalid token")
-	}
-
 	subject, err := parsedToken.Claims.GetSubject()
 	if err != nil {
 		return nil, err
