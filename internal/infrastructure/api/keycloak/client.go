@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -12,14 +13,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-)
 
-type Client interface {
-	ExchangeCode(code, redirectURI string) (*TokenResponse, error)
-	VerifyToken(accessToken string) (*jwt.Token, error)
-	RefreshToken(refreshToken string) (*TokenResponse, error)
-	RevokeToken(refreshToken string) error
-}
+	"github.com/qkitzero/auth-service/internal/application/identity"
+)
 
 type client struct {
 	baseURL      string
@@ -29,7 +25,7 @@ type client struct {
 	httpClient   *http.Client
 }
 
-func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Duration) Client {
+func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Duration) identity.Provider {
 	httpClient := http.Client{Timeout: timeout}
 	return &client{
 		baseURL:      baseURL,
@@ -40,7 +36,11 @@ func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Durat
 	}
 }
 
-func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) {
+func (c *client) Login(redirectURI string) (string, error) {
+	return "", errors.New("not implemented")
+}
+
+func (c *client) ExchangeCode(code, redirectURI string) (*identity.TokenResult, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.baseURL, c.realm)
 
 	data := url.Values{}
@@ -71,10 +71,13 @@ func (c *client) ExchangeCode(code, redirectURI string) (*TokenResponse, error) 
 		return nil, err
 	}
 
-	return &tokenResponse, nil
+	return &identity.TokenResult{
+		AccessToken:  tokenResponse.AccessToken,
+		RefreshToken: tokenResponse.RefreshToken,
+	}, nil
 }
 
-func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
+func (c *client) VerifyToken(accessToken string) (*identity.VerifyResult, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", c.baseURL, c.realm)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -143,14 +146,15 @@ func (c *client) VerifyToken(accessToken string) (*jwt.Token, error) {
 		return nil, err
 	}
 
-	if !parsedToken.Valid {
-		return nil, fmt.Errorf("invalid token")
+	subject, err := parsedToken.Claims.GetSubject()
+	if err != nil {
+		return nil, err
 	}
 
-	return parsedToken, nil
+	return &identity.VerifyResult{Subject: subject}, nil
 }
 
-func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
+func (c *client) RefreshToken(refreshToken string) (*identity.TokenResult, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.baseURL, c.realm)
 
 	data := url.Values{}
@@ -180,7 +184,10 @@ func (c *client) RefreshToken(refreshToken string) (*TokenResponse, error) {
 		return nil, err
 	}
 
-	return &tokenResponse, nil
+	return &identity.TokenResult{
+		AccessToken:  tokenResponse.AccessToken,
+		RefreshToken: tokenResponse.RefreshToken,
+	}, nil
 }
 
 func (c *client) RevokeToken(refreshToken string) error {
@@ -208,4 +215,12 @@ func (c *client) RevokeToken(refreshToken string) error {
 	}
 
 	return nil
+}
+
+func (c *client) Logout(returnTo string) (string, error) {
+	return "", errors.New("not implemented")
+}
+
+func (c *client) GetM2MToken(clientID, clientSecret string) (*identity.TokenResult, error) {
+	return nil, errors.New("not implemented")
 }

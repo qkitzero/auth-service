@@ -1,10 +1,9 @@
 package auth
 
 import (
+	"github.com/qkitzero/auth-service/internal/application/identity"
 	"github.com/qkitzero/auth-service/internal/domain/token"
 	"github.com/qkitzero/auth-service/internal/domain/user"
-	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
-	"github.com/qkitzero/auth-service/internal/infrastructure/api/keycloak"
 )
 
 type AuthUsecase interface {
@@ -18,47 +17,35 @@ type AuthUsecase interface {
 }
 
 type authUsecase struct {
-	keycloakClient keycloak.Client
-	auth0Client    auth0.Client
+	identityProvider identity.Provider
 }
 
-func NewAuthUsecase(
-	keycloakClient keycloak.Client,
-	auth0Client auth0.Client,
-) AuthUsecase {
+func NewAuthUsecase(identityProvider identity.Provider) AuthUsecase {
 	return &authUsecase{
-		keycloakClient: keycloakClient,
-		auth0Client:    auth0Client,
+		identityProvider: identityProvider,
 	}
 }
 
 func (s *authUsecase) Login(redirectURI string) (string, error) {
-	url, err := s.auth0Client.Login(redirectURI)
-	if err != nil {
-		return "", err
-	}
-
-	return url, nil
+	return s.identityProvider.Login(redirectURI)
 }
 
 func (s *authUsecase) ExchangeCode(code, redirectURI string) (token.Token, error) {
-	tokenResponse, err := s.auth0Client.ExchangeCode(code, redirectURI)
+	result, err := s.identityProvider.ExchangeCode(code, redirectURI)
 	if err != nil {
 		return nil, err
 	}
 
-	return token.NewToken(tokenResponse.AccessToken, tokenResponse.RefreshToken)
+	return token.NewToken(result.AccessToken, result.RefreshToken)
 }
 
 func (s *authUsecase) VerifyToken(accessToken string) (user.User, error) {
-	verifiedToken, err := s.auth0Client.VerifyToken(accessToken)
+	result, err := s.identityProvider.VerifyToken(accessToken)
 	if err != nil {
 		return nil, err
 	}
 
-	sub, _ := verifiedToken.Claims.GetSubject()
-
-	userID, err := user.NewUserID(sub)
+	userID, err := user.NewUserID(result.Subject)
 	if err != nil {
 		return nil, err
 	}
@@ -67,32 +54,26 @@ func (s *authUsecase) VerifyToken(accessToken string) (user.User, error) {
 }
 
 func (s *authUsecase) RefreshToken(refreshToken string) (token.Token, error) {
-	tokenResponse, err := s.auth0Client.RefreshToken(refreshToken)
+	result, err := s.identityProvider.RefreshToken(refreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	return token.NewToken(tokenResponse.AccessToken, tokenResponse.RefreshToken)
+	return token.NewToken(result.AccessToken, result.RefreshToken)
 }
 
 func (s *authUsecase) RevokeToken(refreshToken string) error {
-	return s.auth0Client.RevokeToken(refreshToken)
+	return s.identityProvider.RevokeToken(refreshToken)
 }
 
 func (s *authUsecase) Logout(returnTo string) (string, error) {
-	url, err := s.auth0Client.Logout(returnTo)
-	if err != nil {
-		return "", err
-	}
-
-	return url, nil
+	return s.identityProvider.Logout(returnTo)
 }
 
 func (s *authUsecase) GetM2MToken(clientID, clientSecret string) (token.M2MToken, error) {
-	tokenResponse, err := s.auth0Client.GetM2MToken(clientID, clientSecret)
+	result, err := s.identityProvider.GetM2MToken(clientID, clientSecret)
 	if err != nil {
 		return nil, err
 	}
-
-	return token.NewM2MToken(tokenResponse.AccessToken)
+	return token.NewM2MToken(result.AccessToken)
 }

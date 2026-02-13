@@ -7,23 +7,25 @@ import (
 	"encoding/json"
 	"math/big"
 	"net/http"
-	"net/http/httptest"
 	"reflect"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/qkitzero/auth-service/internal/application/identity"
 )
 
 func TestExchangeCode(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name          string
-		success       bool
-		code          string
-		redirectURI   string
-		handler       http.HandlerFunc
-		expectedToken *TokenResponse
+		name        string
+		success     bool
+		code        string
+		redirectURI string
+		handler     http.HandlerFunc
+		expected    *identity.TokenResult
 	}{
 		{
 			name:        "success exchange code",
@@ -39,11 +41,9 @@ func TestExchangeCode(t *testing.T) {
 					RefreshExpiresIn: 3600,
 				})
 			},
-			expectedToken: &TokenResponse{
-				AccessToken:      "accessToken",
-				RefreshToken:     "refreshToken",
-				ExpiresIn:        3600,
-				RefreshExpiresIn: 3600,
+			expected: &identity.TokenResult{
+				AccessToken:  "accessToken",
+				RefreshToken: "refreshToken",
 			},
 		},
 		{
@@ -54,7 +54,7 @@ func TestExchangeCode(t *testing.T) {
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
-			expectedToken: nil,
+			expected: nil,
 		},
 		{
 			name:        "failure keycloak json error",
@@ -64,7 +64,7 @@ func TestExchangeCode(t *testing.T) {
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
-			expectedToken: nil,
+			expected: nil,
 		},
 		{
 			name:        "failure timeout",
@@ -75,7 +75,7 @@ func TestExchangeCode(t *testing.T) {
 				time.Sleep(2 * time.Second)
 				w.WriteHeader(http.StatusOK)
 			},
-			expectedToken: nil,
+			expected: nil,
 		},
 	}
 
@@ -97,8 +97,8 @@ func TestExchangeCode(t *testing.T) {
 				t.Errorf("expected error, but got nil")
 			}
 
-			if tt.success && !reflect.DeepEqual(token, tt.expectedToken) {
-				t.Errorf("expected token %+v, got %+v", tt.expectedToken, token)
+			if tt.success && !reflect.DeepEqual(token, tt.expected) {
+				t.Errorf("token = %v, want %v", token, tt.expected)
 			}
 		})
 	}
@@ -112,9 +112,9 @@ func TestVerifyToken(t *testing.T) {
 	publicKey := &privateKey.PublicKey
 	kid := "kid"
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{"sub": "sub"})
-	token.Header["kid"] = kid
-	accessToken, err := token.SignedString(privateKey)
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{"sub": "126ff835-d63f-4f44-a3aa-b5e530b98991"})
+	jwtToken.Header["kid"] = kid
+	accessToken, err := jwtToken.SignedString(privateKey)
 	if err != nil {
 		t.Errorf("failed to sign token: %v", err)
 	}
@@ -283,11 +283,11 @@ func TestVerifyToken(t *testing.T) {
 func TestRefreshToken(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name          string
-		success       bool
-		refreshToken  string
-		handler       http.HandlerFunc
-		expectedToken *TokenResponse
+		name         string
+		success      bool
+		refreshToken string
+		handler      http.HandlerFunc
+		expected     *identity.TokenResult
 	}{
 		{
 			name:         "success refresh token",
@@ -302,11 +302,9 @@ func TestRefreshToken(t *testing.T) {
 					RefreshExpiresIn: 3600,
 				})
 			},
-			expectedToken: &TokenResponse{
-				AccessToken:      "accessToken",
-				RefreshToken:     "refreshToken",
-				ExpiresIn:        3600,
-				RefreshExpiresIn: 3600,
+			expected: &identity.TokenResult{
+				AccessToken:  "accessToken",
+				RefreshToken: "refreshToken",
 			},
 		},
 		{
@@ -316,7 +314,7 @@ func TestRefreshToken(t *testing.T) {
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			},
-			expectedToken: nil,
+			expected: nil,
 		},
 		{
 			name:         "failure keycloak json error",
@@ -325,7 +323,7 @@ func TestRefreshToken(t *testing.T) {
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
-			expectedToken: nil,
+			expected: nil,
 		},
 		{
 			name:         "failure timeout",
@@ -335,7 +333,7 @@ func TestRefreshToken(t *testing.T) {
 				time.Sleep(2 * time.Second)
 				w.WriteHeader(http.StatusOK)
 			},
-			expectedToken: nil,
+			expected: nil,
 		},
 	}
 	for _, tt := range tests {
@@ -356,8 +354,8 @@ func TestRefreshToken(t *testing.T) {
 				t.Errorf("expected error, but got nil")
 			}
 
-			if tt.success && !reflect.DeepEqual(token, tt.expectedToken) {
-				t.Errorf("expected token %+v, got %+v", tt.expectedToken, token)
+			if tt.success && !reflect.DeepEqual(token, tt.expected) {
+				t.Errorf("token = %v, want %v", token, tt.expected)
 			}
 		})
 	}
