@@ -78,7 +78,7 @@ func TestExchangeCode(t *testing.T) {
 			success:         false,
 			code:            "code",
 			redirectURI:     "http://localhost:3000/callback",
-			tokenResult:     &identity.TokenResult{AccessToken: "accessToken", RefreshToken: "refreshToken"},
+			tokenResult:     nil,
 			exchangeCodeErr: errors.New("exchange code error"),
 		},
 	}
@@ -126,7 +126,7 @@ func TestVerifyToken(t *testing.T) {
 			name:           "failure verify token error",
 			success:        false,
 			accessToken:    "accessToken",
-			verifyResult:   &identity.VerifyResult{Subject: "126ff835-d63f-4f44-a3aa-b5e530b98991"},
+			verifyResult:   nil,
 			verifyTokenErr: errors.New("verify token error"),
 		},
 		{
@@ -181,7 +181,7 @@ func TestRefreshToken(t *testing.T) {
 			name:            "failure refresh token error",
 			success:         false,
 			refreshToken:    "refreshToken",
-			tokenResult:     &identity.TokenResult{AccessToken: "accessToken", RefreshToken: "refreshToken"},
+			tokenResult:     nil,
 			refreshTokenErr: errors.New("refresh token error"),
 		},
 	}
@@ -316,7 +316,7 @@ func TestGetM2MToken(t *testing.T) {
 			success:        false,
 			clientID:       "m2mClientID",
 			clientSecret:   "m2mClientSecret",
-			tokenResult:    &identity.TokenResult{AccessToken: "m2mAccessToken"},
+			tokenResult:    nil,
 			getM2MTokenErr: errors.New("get m2m token error"),
 		},
 	}
