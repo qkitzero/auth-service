@@ -46,7 +46,7 @@ func (h *AuthHandler) ExchangeCode(ctx context.Context, req *authv1.ExchangeCode
 	grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken()))
 
 	return &authv1.ExchangeCodeResponse{
-		UserId:      string(user.ID()),
+		UserId:      user.ID().String(),
 		AccessToken: token.AccessToken(),
 	}, nil
 }
@@ -75,7 +75,7 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRe
 	}
 
 	return &authv1.VerifyTokenResponse{
-		UserId: string(user.ID()),
+		UserId: user.ID().String(),
 	}, nil
 }
 
