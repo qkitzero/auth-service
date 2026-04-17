@@ -27,3 +27,15 @@ func TestNewUserID(t *testing.T) {
 		})
 	}
 }
+
+func TestUserIDString(t *testing.T) {
+	t.Parallel()
+	s := "792bae02-3587-435f-a98e-3756f8695441"
+	id, err := NewUserID(s)
+	if err != nil {
+		t.Fatalf("expected no error, but got %v", err)
+	}
+	if id.String() != s {
+		t.Errorf("expected %s, but got %s", s, id.String())
+	}
+}
