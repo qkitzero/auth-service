@@ -26,12 +26,12 @@ func NewAuthUsecase(identityProvider identity.Provider) AuthUsecase {
 	}
 }
 
-func (s *authUsecase) Login(redirectURI string) (string, error) {
-	return s.identityProvider.Login(redirectURI)
+func (u *authUsecase) Login(redirectURI string) (string, error) {
+	return u.identityProvider.Login(redirectURI)
 }
 
-func (s *authUsecase) ExchangeCode(code, redirectURI string) (token.Token, error) {
-	result, err := s.identityProvider.ExchangeCode(code, redirectURI)
+func (u *authUsecase) ExchangeCode(code, redirectURI string) (token.Token, error) {
+	result, err := u.identityProvider.ExchangeCode(code, redirectURI)
 	if err != nil {
 		return nil, err
 	}
@@ -39,8 +39,8 @@ func (s *authUsecase) ExchangeCode(code, redirectURI string) (token.Token, error
 	return token.NewToken(result.AccessToken, result.RefreshToken)
 }
 
-func (s *authUsecase) VerifyToken(accessToken string) (user.User, error) {
-	result, err := s.identityProvider.VerifyToken(accessToken)
+func (u *authUsecase) VerifyToken(accessToken string) (user.User, error) {
+	result, err := u.identityProvider.VerifyToken(accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +53,8 @@ func (s *authUsecase) VerifyToken(accessToken string) (user.User, error) {
 	return user.NewUser(userID), nil
 }
 
-func (s *authUsecase) RefreshToken(refreshToken string) (token.Token, error) {
-	result, err := s.identityProvider.RefreshToken(refreshToken)
+func (u *authUsecase) RefreshToken(refreshToken string) (token.Token, error) {
+	result, err := u.identityProvider.RefreshToken(refreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -62,16 +62,16 @@ func (s *authUsecase) RefreshToken(refreshToken string) (token.Token, error) {
 	return token.NewToken(result.AccessToken, result.RefreshToken)
 }
 
-func (s *authUsecase) RevokeToken(refreshToken string) error {
-	return s.identityProvider.RevokeToken(refreshToken)
+func (u *authUsecase) RevokeToken(refreshToken string) error {
+	return u.identityProvider.RevokeToken(refreshToken)
 }
 
-func (s *authUsecase) Logout(returnTo string) (string, error) {
-	return s.identityProvider.Logout(returnTo)
+func (u *authUsecase) Logout(returnTo string) (string, error) {
+	return u.identityProvider.Logout(returnTo)
 }
 
-func (s *authUsecase) GetM2MToken(clientID, clientSecret string) (token.M2MToken, error) {
-	result, err := s.identityProvider.GetM2MToken(clientID, clientSecret)
+func (u *authUsecase) GetM2MToken(clientID, clientSecret string) (token.M2MToken, error) {
+	result, err := u.identityProvider.GetM2MToken(clientID, clientSecret)
 	if err != nil {
 		return nil, err
 	}
