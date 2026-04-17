@@ -17,36 +17,15 @@ func TestNewUserID(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := NewUserID(tt.id)
+			id, err := NewUserID(tt.id)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
 				t.Errorf("expected error, but got nil")
 			}
-		})
-	}
-}
-
-func TestUserIDString(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name string
-		id   string
-	}{
-		{"success user id string", "792bae02-3587-435f-a98e-3756f8695441"},
-		{"success user id string", "google-oauth2|000000000000000000000"},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			id, err := NewUserID(tt.id)
-			if err != nil {
-				t.Fatalf("expected no error, but got %v", err)
-			}
-			if id.String() != tt.id {
-				t.Errorf("expected %s, but got %s", tt.id, id.String())
+			if tt.success && id.String() != tt.id {
+				t.Errorf("String() = %v, want %v", id.String(), tt.id)
 			}
 		})
 	}
