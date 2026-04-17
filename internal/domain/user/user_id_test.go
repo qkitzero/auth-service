@@ -17,12 +17,15 @@ func TestNewUserID(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := NewUserID(tt.id)
+			id, err := NewUserID(tt.id)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
 			if !tt.success && err == nil {
 				t.Errorf("expected error, but got nil")
+			}
+			if tt.success && id.String() != tt.id {
+				t.Errorf("String() = %v, want %v", id.String(), tt.id)
 			}
 		})
 	}
