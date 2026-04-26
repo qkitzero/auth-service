@@ -29,7 +29,8 @@ func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		log.Printf("Login: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &authv1.LoginResponse{
@@ -43,7 +44,8 @@ func (h *AuthHandler) ExchangeCode(ctx context.Context, req *authv1.ExchangeCode
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		log.Printf("ExchangeCode: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	user, err := h.authUsecase.VerifyToken(token.AccessToken())
@@ -51,7 +53,8 @@ func (h *AuthHandler) ExchangeCode(ctx context.Context, req *authv1.ExchangeCode
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		log.Printf("ExchangeCode: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	if err := grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken())); err != nil {
@@ -87,7 +90,8 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRe
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		log.Printf("VerifyToken: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &authv1.VerifyTokenResponse{
@@ -113,7 +117,8 @@ func (h *AuthHandler) RefreshToken(ctx context.Context, req *authv1.RefreshToken
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		log.Printf("RefreshToken: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	if err := grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken())); err != nil {
@@ -142,7 +147,8 @@ func (h *AuthHandler) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRe
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		log.Printf("RevokeToken: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &authv1.RevokeTokenResponse{}, nil
@@ -154,7 +160,8 @@ func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*a
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		log.Printf("Logout: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &authv1.LogoutResponse{
@@ -168,7 +175,8 @@ func (h *AuthHandler) GetM2MToken(ctx context.Context, req *authv1.GetM2MTokenRe
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
-		return nil, status.Error(codes.Internal, err.Error())
+		log.Printf("GetM2MToken: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &authv1.GetM2MTokenResponse{
