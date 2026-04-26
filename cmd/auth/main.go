@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"google.golang.org/grpc"
@@ -17,6 +20,8 @@ import (
 	"github.com/qkitzero/auth-service/util"
 )
 
+const shutdownTimeout = 15 * time.Second
+
 func main() {
 	listener, err := net.Listen("tcp", ":"+util.GetEnv("PORT", ""))
 	if err != nil {
@@ -24,14 +29,6 @@ func main() {
 	}
 
 	server := grpc.NewServer()
-
-	// keycloakClient := keycloak.NewClient(
-	// 	util.GetEnv("KEYCLOAK_SERVER_BASE_URL", ""),
-	// 	util.GetEnv("KEYCLOAK_CLIENT_ID", ""),
-	// 	util.GetEnv("KEYCLOAK_CLIENT_SECRET", ""),
-	// 	util.GetEnv("KEYCLOAK_REALM", ""),
-	// 	10*time.Second,
-	// )
 
 	auth0Client := auth0.NewClient(
 		util.GetEnv("AUTH0_BASE_URL", ""),
@@ -55,7 +52,37 @@ func main() {
 		reflection.Register(server)
 	}
 
-	if err = server.Serve(listener); err != nil {
-		log.Fatal(err)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	serveErr := make(chan error, 1)
+	go func() {
+		log.Printf("gRPC server listening on %s", listener.Addr().String())
+		serveErr <- server.Serve(listener)
+	}()
+
+	select {
+	case err := <-serveErr:
+		if err != nil {
+			log.Fatalf("gRPC server failed: %v", err)
+		}
+	case <-ctx.Done():
+		log.Println("shutdown signal received, starting graceful stop")
+		healthServer.Shutdown()
+
+		stopped := make(chan struct{})
+		go func() {
+			server.GracefulStop()
+			close(stopped)
+		}()
+
+		select {
+		case <-stopped:
+			log.Println("gRPC server stopped gracefully")
+		case <-time.After(shutdownTimeout):
+			log.Printf("graceful stop timed out after %s, forcing stop", shutdownTimeout)
+			server.Stop()
+			<-stopped
+		}
 	}
 }

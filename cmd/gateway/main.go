@@ -2,8 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -16,10 +20,11 @@ import (
 	"github.com/qkitzero/auth-service/util"
 )
 
+const shutdownTimeout = 15 * time.Second
+
 func main() {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	endpoint := util.GetEnv("SERVER_HOST", "") + ":" + util.GetEnv("SERVER_PORT", "")
 
@@ -49,7 +54,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := http.ListenAndServe(":"+util.GetEnv("PORT", ""), mux); err != nil {
-		log.Fatal(err)
+	srv := &http.Server{
+		Addr:    ":" + util.GetEnv("PORT", ""),
+		Handler: mux,
+	}
+
+	serveErr := make(chan error, 1)
+	go func() {
+		log.Printf("HTTP gateway listening on %s", srv.Addr)
+		serveErr <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serveErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("HTTP gateway failed: %v", err)
+		}
+	case <-ctx.Done():
+		log.Println("shutdown signal received, starting HTTP gateway shutdown")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Printf("HTTP gateway shutdown error: %v", err)
+			return
+		}
+		log.Println("HTTP gateway stopped gracefully")
 	}
 }
