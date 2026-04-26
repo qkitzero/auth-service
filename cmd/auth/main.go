@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
+	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,28 +20,81 @@ import (
 	appauth "github.com/qkitzero/auth-service/internal/application/auth"
 	"github.com/qkitzero/auth-service/internal/infrastructure/api/auth0"
 	infraauth "github.com/qkitzero/auth-service/internal/interface/grpc/auth"
-	"github.com/qkitzero/auth-service/util"
 )
 
-const shutdownTimeout = 15 * time.Second
+const (
+	shutdownTimeout    = 15 * time.Second
+	auth0ClientTimeout = 10 * time.Second
+)
+
+type config struct {
+	Env                string
+	Port               string
+	Auth0BaseURL       string
+	Auth0ClientID      string
+	Auth0ClientSecret  string
+	Auth0Audience      string
+}
+
+func loadConfig() (config, error) {
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "development"
+	}
+	cfg := config{Env: env}
+	required := []struct {
+		key string
+		dst *string
+	}{
+		{"PORT", &cfg.Port},
+		{"AUTH0_BASE_URL", &cfg.Auth0BaseURL},
+		{"AUTH0_CLIENT_ID", &cfg.Auth0ClientID},
+		{"AUTH0_CLIENT_SECRET", &cfg.Auth0ClientSecret},
+		{"AUTH0_AUDIENCE", &cfg.Auth0Audience},
+	}
+	var missing []string
+	for _, r := range required {
+		v := os.Getenv(r.key)
+		if v == "" {
+			missing = append(missing, r.key)
+			continue
+		}
+		*r.dst = v
+	}
+	if len(missing) > 0 {
+		return cfg, fmt.Errorf("missing required env vars: %s", strings.Join(missing, ", "))
+	}
+	return cfg, nil
+}
 
 func main() {
-	listener, err := net.Listen("tcp", ":"+util.GetEnv("PORT", ""))
+	if err := run(); err != nil {
+		log.Fatalf("auth-service: %v", err)
+	}
+}
+
+func run() error {
+	cfg, err := loadConfig()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	server := grpc.NewServer()
+	listener, err := net.Listen("tcp", ":"+cfg.Port)
+	if err != nil {
+		return fmt.Errorf("listen: %w", err)
+	}
 
 	auth0Client := auth0.NewClient(
-		util.GetEnv("AUTH0_BASE_URL", ""),
-		util.GetEnv("AUTH0_CLIENT_ID", ""),
-		util.GetEnv("AUTH0_CLIENT_SECRET", ""),
-		util.GetEnv("AUTH0_AUDIENCE", ""),
-		10*time.Second,
+		cfg.Auth0BaseURL,
+		cfg.Auth0ClientID,
+		cfg.Auth0ClientSecret,
+		cfg.Auth0Audience,
+		auth0ClientTimeout,
 	)
 
 	authUsecase := appauth.NewAuthUsecase(auth0Client)
+
+	server := grpc.NewServer()
 
 	healthServer := health.NewServer()
 	tokenHandler := infraauth.NewAuthHandler(authUsecase)
@@ -46,9 +102,10 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(server, healthServer)
 	authv1.RegisterAuthServiceServer(server, tokenHandler)
 
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 	healthServer.SetServingStatus("auth", grpc_health_v1.HealthCheckResponse_SERVING)
 
-	if util.GetEnv("ENV", "development") == "development" {
+	if cfg.Env == "development" {
 		reflection.Register(server)
 	}
 
@@ -64,8 +121,9 @@ func main() {
 	select {
 	case err := <-serveErr:
 		if err != nil {
-			log.Fatalf("gRPC server failed: %v", err)
+			return fmt.Errorf("grpc serve: %w", err)
 		}
+		return nil
 	case <-ctx.Done():
 		log.Println("shutdown signal received, starting graceful stop")
 		healthServer.Shutdown()
@@ -84,5 +142,6 @@ func main() {
 			server.Stop()
 			<-stopped
 		}
+		return nil
 	}
 }
