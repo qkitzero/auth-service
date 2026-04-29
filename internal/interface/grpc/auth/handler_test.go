@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	authv1 "github.com/qkitzero/auth-service/gen/go/auth/v1"
 	"github.com/qkitzero/auth-service/internal/domain/user"
@@ -19,25 +21,14 @@ func TestLogin(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name        string
-		success     bool
 		ctx         context.Context
 		redirectURI string
 		loginErr    error
+		wantCode    codes.Code
 	}{
-		{
-			name:        "success login",
-			success:     true,
-			ctx:         context.Background(),
-			redirectURI: "http://localhost:3000/callback",
-			loginErr:    nil,
-		},
-		{
-			name:        "failure login error",
-			success:     false,
-			ctx:         context.Background(),
-			redirectURI: "http://localhost:3000/callback",
-			loginErr:    errors.New("login error"),
-		},
+		{"success login", context.Background(), "http://localhost:3000/callback", nil, codes.OK},
+		{"failure login error", context.Background(), "http://localhost:3000/callback", errors.New("login error"), codes.Internal},
+		{"failure status preserved", context.Background(), "http://localhost:3000/callback", status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -47,21 +38,14 @@ func TestLogin(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
-			mockAuthUsecase.EXPECT().Login(tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
+			mockUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockUsecase.EXPECT().Login(tt.ctx, tt.redirectURI).Return("login url", tt.loginErr).Times(1)
 
-			authHandler := NewAuthHandler(mockAuthUsecase)
+			handler := NewAuthHandler(mockUsecase)
 
-			req := &authv1.LoginRequest{
-				RedirectUri: tt.redirectURI,
-			}
-
-			_, err := authHandler.Login(tt.ctx, req)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
+			_, err := handler.Login(tt.ctx, &authv1.LoginRequest{RedirectUri: tt.redirectURI})
+			if got := status.Code(err); got != tt.wantCode {
+				t.Errorf("expected code %v, got %v (err=%v)", tt.wantCode, got, err)
 			}
 		})
 	}
@@ -70,41 +54,20 @@ func TestLogin(t *testing.T) {
 func TestExchangeCode(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name                    string
-		success                 bool
-		ctx                     context.Context
-		code                    string
-		redirectURI             string
-		exchangeCodeForTokenErr error
-		verifyTokenErr          error
+		name           string
+		ctx            context.Context
+		code           string
+		redirectURI    string
+		exchangeErr    error
+		callVerify     bool
+		verifyTokenErr error
+		wantCode       codes.Code
 	}{
-		{
-			name:                    "success exchange code",
-			success:                 true,
-			ctx:                     context.Background(),
-			code:                    "code",
-			redirectURI:             "http://localhost:3000/callback",
-			exchangeCodeForTokenErr: nil,
-			verifyTokenErr:          nil,
-		},
-		{
-			name:                    "failure exchange code error",
-			success:                 false,
-			ctx:                     context.Background(),
-			code:                    "code",
-			redirectURI:             "http://localhost:3000/callback",
-			exchangeCodeForTokenErr: errors.New("exchange code error"),
-			verifyTokenErr:          nil,
-		},
-		{
-			name:                    "failure verify token error",
-			success:                 false,
-			ctx:                     context.Background(),
-			code:                    "code",
-			redirectURI:             "http://localhost:3000/callback",
-			exchangeCodeForTokenErr: nil,
-			verifyTokenErr:          errors.New("verify token error"),
-		},
+		{"success exchange code", context.Background(), "code", "http://localhost:3000/callback", nil, true, nil, codes.OK},
+		{"failure exchange error", context.Background(), "code", "http://localhost:3000/callback", errors.New("exchange code error"), false, nil, codes.Internal},
+		{"failure exchange status preserved", context.Background(), "code", "http://localhost:3000/callback", status.Error(codes.Unauthenticated, "auth"), false, nil, codes.Unauthenticated},
+		{"failure verify token error", context.Background(), "code", "http://localhost:3000/callback", nil, true, errors.New("verify token error"), codes.Internal},
+		{"failure verify token status preserved", context.Background(), "code", "http://localhost:3000/callback", nil, true, status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -114,28 +77,23 @@ func TestExchangeCode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockToken := mockstoken.NewMockToken(ctrl)
 			mockUser := mocksuser.NewMockUser(ctrl)
-			mockAuthUsecase.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(mockToken, tt.exchangeCodeForTokenErr).AnyTimes()
-			mockAuthUsecase.EXPECT().VerifyToken("accessToken").Return(mockUser, tt.verifyTokenErr).AnyTimes()
-			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
 			mockToken.EXPECT().AccessToken().Return("accessToken").AnyTimes()
 			mockToken.EXPECT().RefreshToken().Return("refreshToken").AnyTimes()
-
-			authHandler := NewAuthHandler(mockAuthUsecase)
-
-			req := &authv1.ExchangeCodeRequest{
-				Code:        tt.code,
-				RedirectUri: tt.redirectURI,
+			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
+			mockUsecase.EXPECT().ExchangeCode(tt.ctx, tt.code, tt.redirectURI).Return(mockToken, tt.exchangeErr).Times(1)
+			if tt.callVerify {
+				mockUsecase.EXPECT().VerifyToken(tt.ctx, "accessToken").Return(mockUser, tt.verifyTokenErr).Times(1)
 			}
 
-			_, err := authHandler.ExchangeCode(tt.ctx, req)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
+			handler := NewAuthHandler(mockUsecase)
+
+			req := &authv1.ExchangeCodeRequest{Code: tt.code, RedirectUri: tt.redirectURI}
+			_, err := handler.ExchangeCode(tt.ctx, req)
+			if got := status.Code(err); got != tt.wantCode {
+				t.Errorf("expected code %v, got %v (err=%v)", tt.wantCode, got, err)
 			}
 		})
 	}
@@ -146,46 +104,17 @@ func TestVerifyToken(t *testing.T) {
 	accessToken := "accessToken"
 	tests := []struct {
 		name           string
-		success        bool
 		ctx            context.Context
-		accessToken    string
+		callUsecase    bool
 		verifyTokenErr error
+		wantCode       codes.Code
 	}{
-		{
-			name:           "success verify token",
-			success:        true,
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)),
-			accessToken:    accessToken,
-			verifyTokenErr: nil,
-		},
-		{
-			name:           "failure missing metadata",
-			success:        false,
-			ctx:            context.Background(),
-			accessToken:    accessToken,
-			verifyTokenErr: nil,
-		},
-		{
-			name:           "failure missing authorization",
-			success:        false,
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs()),
-			accessToken:    accessToken,
-			verifyTokenErr: nil,
-		},
-		{
-			name:           "failure missing bearer",
-			success:        false,
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", accessToken)),
-			accessToken:    accessToken,
-			verifyTokenErr: nil,
-		},
-		{
-			name:           "failure verify token error",
-			success:        false,
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)),
-			accessToken:    accessToken,
-			verifyTokenErr: errors.New("verify token error"),
-		},
+		{"success verify token", metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)), true, nil, codes.OK},
+		{"failure missing metadata", context.Background(), false, nil, codes.Unauthenticated},
+		{"failure missing authorization", metadata.NewIncomingContext(context.Background(), metadata.Pairs()), false, nil, codes.Unauthenticated},
+		{"failure missing bearer prefix", metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", accessToken)), false, nil, codes.Unauthenticated},
+		{"failure verify token error", metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)), true, errors.New("verify token error"), codes.Internal},
+		{"failure status preserved", metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)), true, status.Error(codes.Unauthenticated, "rejected"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -195,21 +124,18 @@ func TestVerifyToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockUser := mocksuser.NewMockUser(ctrl)
-			mockAuthUsecase.EXPECT().VerifyToken(tt.accessToken).Return(mockUser, tt.verifyTokenErr).AnyTimes()
 			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
-
-			authHandler := NewAuthHandler(mockAuthUsecase)
-
-			req := &authv1.VerifyTokenRequest{}
-
-			_, err := authHandler.VerifyToken(tt.ctx, req)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
+			if tt.callUsecase {
+				mockUsecase.EXPECT().VerifyToken(tt.ctx, accessToken).Return(mockUser, tt.verifyTokenErr).Times(1)
 			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
+
+			handler := NewAuthHandler(mockUsecase)
+
+			_, err := handler.VerifyToken(tt.ctx, &authv1.VerifyTokenRequest{})
+			if got := status.Code(err); got != tt.wantCode {
+				t.Errorf("expected code %v, got %v (err=%v)", tt.wantCode, got, err)
 			}
 		})
 	}
@@ -220,39 +146,16 @@ func TestRefreshToken(t *testing.T) {
 	refreshToken := "refreshToken"
 	tests := []struct {
 		name            string
-		success         bool
 		ctx             context.Context
-		refreshToken    string
+		callUsecase     bool
 		refreshTokenErr error
+		wantCode        codes.Code
 	}{
-		{
-			name:            "success refresh token",
-			success:         true,
-			ctx:             metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
-			refreshToken:    refreshToken,
-			refreshTokenErr: nil,
-		},
-		{
-			name:            "failure missing metadata",
-			success:         false,
-			ctx:             context.Background(),
-			refreshToken:    refreshToken,
-			refreshTokenErr: nil,
-		},
-		{
-			name:            "failure missing refresh token",
-			success:         false,
-			ctx:             metadata.NewIncomingContext(context.Background(), metadata.Pairs()),
-			refreshToken:    refreshToken,
-			refreshTokenErr: nil,
-		},
-		{
-			name:            "failure refresh token",
-			success:         false,
-			ctx:             metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
-			refreshToken:    refreshToken,
-			refreshTokenErr: errors.New("refresh token error"),
-		},
+		{"success refresh token", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, nil, codes.OK},
+		{"failure missing metadata", context.Background(), false, nil, codes.Unauthenticated},
+		{"failure missing refresh token", metadata.NewIncomingContext(context.Background(), metadata.Pairs()), false, nil, codes.Unauthenticated},
+		{"failure refresh token error", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, errors.New("refresh token error"), codes.Internal},
+		{"failure status preserved", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -262,22 +165,19 @@ func TestRefreshToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockToken := mockstoken.NewMockToken(ctrl)
-			mockAuthUsecase.EXPECT().RefreshToken(tt.refreshToken).Return(mockToken, tt.refreshTokenErr).AnyTimes()
 			mockToken.EXPECT().AccessToken().Return("accessToken").AnyTimes()
 			mockToken.EXPECT().RefreshToken().Return("refreshToken").AnyTimes()
-
-			authHandler := NewAuthHandler(mockAuthUsecase)
-
-			req := &authv1.RefreshTokenRequest{}
-
-			_, err := authHandler.RefreshToken(tt.ctx, req)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
+			if tt.callUsecase {
+				mockUsecase.EXPECT().RefreshToken(tt.ctx, refreshToken).Return(mockToken, tt.refreshTokenErr).Times(1)
 			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
+
+			handler := NewAuthHandler(mockUsecase)
+
+			_, err := handler.RefreshToken(tt.ctx, &authv1.RefreshTokenRequest{})
+			if got := status.Code(err); got != tt.wantCode {
+				t.Errorf("expected code %v, got %v (err=%v)", tt.wantCode, got, err)
 			}
 		})
 	}
@@ -288,39 +188,16 @@ func TestRevokeToken(t *testing.T) {
 	refreshToken := "refreshToken"
 	tests := []struct {
 		name           string
-		success        bool
 		ctx            context.Context
-		refreshToken   string
+		callUsecase    bool
 		revokeTokenErr error
+		wantCode       codes.Code
 	}{
-		{
-			name:           "success revoke token",
-			success:        true,
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
-			refreshToken:   refreshToken,
-			revokeTokenErr: nil,
-		},
-		{
-			name:           "failure missing metadata",
-			success:        false,
-			ctx:            context.Background(),
-			refreshToken:   refreshToken,
-			revokeTokenErr: nil,
-		},
-		{
-			name:           "failure missing refresh token",
-			success:        false,
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs()),
-			refreshToken:   refreshToken,
-			revokeTokenErr: nil,
-		},
-		{
-			name:           "failure revoke token",
-			ctx:            metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)),
-			success:        false,
-			refreshToken:   refreshToken,
-			revokeTokenErr: errors.New("revoke token error"),
-		},
+		{"success revoke token", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, nil, codes.OK},
+		{"failure missing metadata", context.Background(), false, nil, codes.Unauthenticated},
+		{"failure missing refresh token", metadata.NewIncomingContext(context.Background(), metadata.Pairs()), false, nil, codes.Unauthenticated},
+		{"failure revoke token error", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, errors.New("revoke token error"), codes.Internal},
+		{"failure status preserved", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -330,21 +207,16 @@ func TestRevokeToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
-			mockUser := mocksuser.NewMockUser(ctrl)
-			mockAuthUsecase.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
-			mockUser.EXPECT().ID().Return(user.UserID("fe8c2263-bbac-4bb9-a41d-b04f5afc4425")).AnyTimes()
-
-			authHandler := NewAuthHandler(mockAuthUsecase)
-
-			req := &authv1.RevokeTokenRequest{}
-
-			_, err := authHandler.RevokeToken(tt.ctx, req)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
+			mockUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			if tt.callUsecase {
+				mockUsecase.EXPECT().RevokeToken(tt.ctx, refreshToken).Return(tt.revokeTokenErr).Times(1)
 			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
+
+			handler := NewAuthHandler(mockUsecase)
+
+			_, err := handler.RevokeToken(tt.ctx, &authv1.RevokeTokenRequest{})
+			if got := status.Code(err); got != tt.wantCode {
+				t.Errorf("expected code %v, got %v (err=%v)", tt.wantCode, got, err)
 			}
 		})
 	}
@@ -354,25 +226,14 @@ func TestLogout(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name      string
-		success   bool
 		ctx       context.Context
 		returnTo  string
 		logoutErr error
+		wantCode  codes.Code
 	}{
-		{
-			name:      "success logout",
-			success:   true,
-			ctx:       context.Background(),
-			returnTo:  "http://localhost:3000/",
-			logoutErr: nil,
-		},
-		{
-			name:      "failure logout error",
-			success:   false,
-			ctx:       context.Background(),
-			returnTo:  "http://localhost:3000/",
-			logoutErr: errors.New("logout error"),
-		},
+		{"success logout", context.Background(), "http://localhost:3000/", nil, codes.OK},
+		{"failure logout error", context.Background(), "http://localhost:3000/", errors.New("logout error"), codes.Internal},
+		{"failure status preserved", context.Background(), "http://localhost:3000/", status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -382,21 +243,14 @@ func TestLogout(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
-			mockAuthUsecase.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
+			mockUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockUsecase.EXPECT().Logout(tt.ctx, tt.returnTo).Return("logout url", tt.logoutErr).Times(1)
 
-			authHandler := NewAuthHandler(mockAuthUsecase)
+			handler := NewAuthHandler(mockUsecase)
 
-			req := &authv1.LogoutRequest{
-				ReturnTo: tt.returnTo,
-			}
-
-			_, err := authHandler.Logout(tt.ctx, req)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
+			_, err := handler.Logout(tt.ctx, &authv1.LogoutRequest{ReturnTo: tt.returnTo})
+			if got := status.Code(err); got != tt.wantCode {
+				t.Errorf("expected code %v, got %v (err=%v)", tt.wantCode, got, err)
 			}
 		})
 	}
@@ -406,28 +260,15 @@ func TestGetM2MToken(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name           string
-		success        bool
 		ctx            context.Context
 		clientID       string
 		clientSecret   string
 		getM2MTokenErr error
+		wantCode       codes.Code
 	}{
-		{
-			name:           "success get m2m token",
-			success:        true,
-			ctx:            context.Background(),
-			clientID:       "m2mClientID",
-			clientSecret:   "m2mClientSecret",
-			getM2MTokenErr: nil,
-		},
-		{
-			name:           "failure get m2m token error",
-			success:        false,
-			ctx:            context.Background(),
-			clientID:       "m2mClientID",
-			clientSecret:   "m2mClientSecret",
-			getM2MTokenErr: errors.New("get m2m token error"),
-		},
+		{"success get m2m token", context.Background(), "m2mClientID", "m2mClientSecret", nil, codes.OK},
+		{"failure get m2m token error", context.Background(), "m2mClientID", "m2mClientSecret", errors.New("get m2m token error"), codes.Internal},
+		{"failure status preserved", context.Background(), "m2mClientID", "m2mClientSecret", status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -437,24 +278,17 @@ func TestGetM2MToken(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockAuthUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
+			mockUsecase := mocksappauth.NewMockAuthUsecase(ctrl)
 			mockM2MToken := mockstoken.NewMockM2MToken(ctrl)
-			mockAuthUsecase.EXPECT().GetM2MToken(tt.clientID, tt.clientSecret).Return(mockM2MToken, tt.getM2MTokenErr).AnyTimes()
 			mockM2MToken.EXPECT().AccessToken().Return("m2mAccessToken").AnyTimes()
+			mockUsecase.EXPECT().GetM2MToken(tt.ctx, tt.clientID, tt.clientSecret).Return(mockM2MToken, tt.getM2MTokenErr).Times(1)
 
-			authHandler := NewAuthHandler(mockAuthUsecase)
+			handler := NewAuthHandler(mockUsecase)
 
-			req := &authv1.GetM2MTokenRequest{
-				ClientId:     tt.clientID,
-				ClientSecret: tt.clientSecret,
-			}
-
-			_, err := authHandler.GetM2MToken(tt.ctx, req)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
+			req := &authv1.GetM2MTokenRequest{ClientId: tt.clientID, ClientSecret: tt.clientSecret}
+			_, err := handler.GetM2MToken(tt.ctx, req)
+			if got := status.Code(err); got != tt.wantCode {
+				t.Errorf("expected code %v, got %v (err=%v)", tt.wantCode, got, err)
 			}
 		})
 	}

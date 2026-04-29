@@ -1,5 +1,7 @@
 package identity
 
+import "context"
+
 type TokenResult struct {
 	AccessToken  string
 	RefreshToken string
@@ -10,11 +12,11 @@ type VerifyResult struct {
 }
 
 type Provider interface {
-	Login(redirectURI string) (string, error)
-	ExchangeCode(code, redirectURI string) (*TokenResult, error)
-	VerifyToken(accessToken string) (*VerifyResult, error)
-	RefreshToken(refreshToken string) (*TokenResult, error)
-	RevokeToken(refreshToken string) error
-	Logout(returnTo string) (string, error)
-	GetM2MToken(clientID, clientSecret string) (*TokenResult, error)
+	Login(ctx context.Context, redirectURI string) (string, error)
+	ExchangeCode(ctx context.Context, code, redirectURI string) (*TokenResult, error)
+	VerifyToken(ctx context.Context, accessToken string) (*VerifyResult, error)
+	RefreshToken(ctx context.Context, refreshToken string) (*TokenResult, error)
+	RevokeToken(ctx context.Context, refreshToken string) error
+	Logout(ctx context.Context, returnTo string) (string, error)
+	GetM2MToken(ctx context.Context, clientID, clientSecret string) (*TokenResult, error)
 }
