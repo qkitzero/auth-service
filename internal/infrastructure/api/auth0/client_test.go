@@ -78,7 +78,7 @@ func TestExchangeCode(t *testing.T) {
 			redirectURI: "http://localhost:3000/callback",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(&TokenResponse{
+				_ = json.NewEncoder(w).Encode(&TokenResponse{
 					AccessToken:      "accessToken",
 					RefreshToken:     "refreshToken",
 					ExpiresIn:        3600,
@@ -176,7 +176,7 @@ func TestVerifyToken(t *testing.T) {
 			accessToken: accessToken,
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(PublicKeyResponse{
+				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
 					Keys: []PublicKey{
 						{
 							Kid: kid,
@@ -193,7 +193,7 @@ func TestVerifyToken(t *testing.T) {
 			accessToken: "invalidToken",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(PublicKeyResponse{
+				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
 					Keys: []PublicKey{
 						{
 							Kid: kid,
@@ -216,7 +216,7 @@ func TestVerifyToken(t *testing.T) {
 			}(),
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(PublicKeyResponse{
+				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
 					Keys: []PublicKey{
 						{
 							Kid: kid,
@@ -240,7 +240,7 @@ func TestVerifyToken(t *testing.T) {
 			}(),
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(PublicKeyResponse{
+				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
 					Keys: []PublicKey{
 						{
 							Kid: kid,
@@ -273,7 +273,7 @@ func TestVerifyToken(t *testing.T) {
 			accessToken: accessToken,
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(PublicKeyResponse{Keys: []PublicKey{}})
+				_ = json.NewEncoder(w).Encode(PublicKeyResponse{Keys: []PublicKey{}})
 			},
 		},
 		{
@@ -282,7 +282,7 @@ func TestVerifyToken(t *testing.T) {
 			accessToken: accessToken,
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(PublicKeyResponse{
+				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
 					Keys: []PublicKey{
 						{
 							Kid: "",
@@ -339,7 +339,7 @@ func TestRefreshToken(t *testing.T) {
 			refreshToken: "refreshToken",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(&TokenResponse{
+				_ = json.NewEncoder(w).Encode(&TokenResponse{
 					AccessToken:      "accessToken",
 					RefreshToken:     "refreshToken",
 					ExpiresIn:        3600,
@@ -514,7 +514,7 @@ func TestGetM2MToken(t *testing.T) {
 			success: true,
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(&TokenResponse{
+				_ = json.NewEncoder(w).Encode(&TokenResponse{
 					AccessToken: "m2mAccessToken",
 					ExpiresIn:   86400,
 				})
