@@ -95,7 +95,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("grpc client: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	healthClient := grpc_health_v1.NewHealthClient(conn)
 

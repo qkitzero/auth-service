@@ -71,7 +71,7 @@ func (c *client) ExchangeCode(ctx context.Context, code, redirectURI string) (*i
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
@@ -100,7 +100,7 @@ func (c *client) VerifyToken(ctx context.Context, accessToken string) (*identity
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
@@ -184,7 +184,7 @@ func (c *client) RefreshToken(ctx context.Context, refreshToken string) (*identi
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
@@ -219,7 +219,7 @@ func (c *client) RevokeToken(ctx context.Context, refreshToken string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to logout, status: %d", resp.StatusCode)
@@ -259,7 +259,7 @@ func (c *client) GetM2MToken(ctx context.Context, clientID, clientSecret string)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get m2m token, status: %d", resp.StatusCode)
