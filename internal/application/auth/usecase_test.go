@@ -41,7 +41,7 @@ func TestLogin(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().Login(gomock.Any(), tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
+			mockIdentityProvider.EXPECT().Login(context.Background(), tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
@@ -92,7 +92,7 @@ func TestExchangeCode(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().ExchangeCode(gomock.Any(), tt.code, tt.redirectURI).Return(tt.tokenResult, tt.exchangeCodeErr).AnyTimes()
+			mockIdentityProvider.EXPECT().ExchangeCode(context.Background(), tt.code, tt.redirectURI).Return(tt.tokenResult, tt.exchangeCodeErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
@@ -147,7 +147,7 @@ func TestVerifyToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().VerifyToken(gomock.Any(), tt.accessToken).Return(tt.verifyResult, tt.verifyTokenErr).AnyTimes()
+			mockIdentityProvider.EXPECT().VerifyToken(context.Background(), tt.accessToken).Return(tt.verifyResult, tt.verifyTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
@@ -195,7 +195,7 @@ func TestRefreshToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().RefreshToken(gomock.Any(), tt.refreshToken).Return(tt.tokenResult, tt.refreshTokenErr).AnyTimes()
+			mockIdentityProvider.EXPECT().RefreshToken(context.Background(), tt.refreshToken).Return(tt.tokenResult, tt.refreshTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
@@ -234,7 +234,7 @@ func TestRevokeToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().RevokeToken(gomock.Any(), tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
+			mockIdentityProvider.EXPECT().RevokeToken(context.Background(), tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
@@ -279,7 +279,7 @@ func TestLogout(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().Logout(gomock.Any(), tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
+			mockIdentityProvider.EXPECT().Logout(context.Background(), tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
@@ -330,7 +330,7 @@ func TestGetM2MToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().GetM2MToken(gomock.Any(), tt.clientID, tt.clientSecret).Return(tt.tokenResult, tt.getM2MTokenErr).AnyTimes()
+			mockIdentityProvider.EXPECT().GetM2MToken(context.Background(), tt.clientID, tt.clientSecret).Return(tt.tokenResult, tt.getM2MTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
