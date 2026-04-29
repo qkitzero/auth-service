@@ -10,6 +10,7 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	token "github.com/qkitzero/auth-service/internal/domain/token"
@@ -42,105 +43,105 @@ func (m *MockAuthUsecase) EXPECT() *MockAuthUsecaseMockRecorder {
 }
 
 // ExchangeCode mocks base method.
-func (m *MockAuthUsecase) ExchangeCode(code, redirectURI string) (token.Token, error) {
+func (m *MockAuthUsecase) ExchangeCode(ctx context.Context, code, redirectURI string) (token.Token, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExchangeCode", code, redirectURI)
+	ret := m.ctrl.Call(m, "ExchangeCode", ctx, code, redirectURI)
 	ret0, _ := ret[0].(token.Token)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExchangeCode indicates an expected call of ExchangeCode.
-func (mr *MockAuthUsecaseMockRecorder) ExchangeCode(code, redirectURI any) *gomock.Call {
+func (mr *MockAuthUsecaseMockRecorder) ExchangeCode(ctx, code, redirectURI any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExchangeCode", reflect.TypeOf((*MockAuthUsecase)(nil).ExchangeCode), code, redirectURI)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExchangeCode", reflect.TypeOf((*MockAuthUsecase)(nil).ExchangeCode), ctx, code, redirectURI)
 }
 
 // GetM2MToken mocks base method.
-func (m *MockAuthUsecase) GetM2MToken(clientID, clientSecret string) (token.M2MToken, error) {
+func (m *MockAuthUsecase) GetM2MToken(ctx context.Context, clientID, clientSecret string) (token.M2MToken, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetM2MToken", clientID, clientSecret)
+	ret := m.ctrl.Call(m, "GetM2MToken", ctx, clientID, clientSecret)
 	ret0, _ := ret[0].(token.M2MToken)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetM2MToken indicates an expected call of GetM2MToken.
-func (mr *MockAuthUsecaseMockRecorder) GetM2MToken(clientID, clientSecret any) *gomock.Call {
+func (mr *MockAuthUsecaseMockRecorder) GetM2MToken(ctx, clientID, clientSecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetM2MToken", reflect.TypeOf((*MockAuthUsecase)(nil).GetM2MToken), clientID, clientSecret)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetM2MToken", reflect.TypeOf((*MockAuthUsecase)(nil).GetM2MToken), ctx, clientID, clientSecret)
 }
 
 // Login mocks base method.
-func (m *MockAuthUsecase) Login(redirectURI string) (string, error) {
+func (m *MockAuthUsecase) Login(ctx context.Context, redirectURI string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Login", redirectURI)
+	ret := m.ctrl.Call(m, "Login", ctx, redirectURI)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Login indicates an expected call of Login.
-func (mr *MockAuthUsecaseMockRecorder) Login(redirectURI any) *gomock.Call {
+func (mr *MockAuthUsecaseMockRecorder) Login(ctx, redirectURI any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockAuthUsecase)(nil).Login), redirectURI)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockAuthUsecase)(nil).Login), ctx, redirectURI)
 }
 
 // Logout mocks base method.
-func (m *MockAuthUsecase) Logout(returnTo string) (string, error) {
+func (m *MockAuthUsecase) Logout(ctx context.Context, returnTo string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Logout", returnTo)
+	ret := m.ctrl.Call(m, "Logout", ctx, returnTo)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Logout indicates an expected call of Logout.
-func (mr *MockAuthUsecaseMockRecorder) Logout(returnTo any) *gomock.Call {
+func (mr *MockAuthUsecaseMockRecorder) Logout(ctx, returnTo any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockAuthUsecase)(nil).Logout), returnTo)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockAuthUsecase)(nil).Logout), ctx, returnTo)
 }
 
 // RefreshToken mocks base method.
-func (m *MockAuthUsecase) RefreshToken(refreshToken string) (token.Token, error) {
+func (m *MockAuthUsecase) RefreshToken(ctx context.Context, refreshToken string) (token.Token, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RefreshToken", refreshToken)
+	ret := m.ctrl.Call(m, "RefreshToken", ctx, refreshToken)
 	ret0, _ := ret[0].(token.Token)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RefreshToken indicates an expected call of RefreshToken.
-func (mr *MockAuthUsecaseMockRecorder) RefreshToken(refreshToken any) *gomock.Call {
+func (mr *MockAuthUsecaseMockRecorder) RefreshToken(ctx, refreshToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockAuthUsecase)(nil).RefreshToken), refreshToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshToken", reflect.TypeOf((*MockAuthUsecase)(nil).RefreshToken), ctx, refreshToken)
 }
 
 // RevokeToken mocks base method.
-func (m *MockAuthUsecase) RevokeToken(refreshToken string) error {
+func (m *MockAuthUsecase) RevokeToken(ctx context.Context, refreshToken string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RevokeToken", refreshToken)
+	ret := m.ctrl.Call(m, "RevokeToken", ctx, refreshToken)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RevokeToken indicates an expected call of RevokeToken.
-func (mr *MockAuthUsecaseMockRecorder) RevokeToken(refreshToken any) *gomock.Call {
+func (mr *MockAuthUsecaseMockRecorder) RevokeToken(ctx, refreshToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeToken", reflect.TypeOf((*MockAuthUsecase)(nil).RevokeToken), refreshToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeToken", reflect.TypeOf((*MockAuthUsecase)(nil).RevokeToken), ctx, refreshToken)
 }
 
 // VerifyToken mocks base method.
-func (m *MockAuthUsecase) VerifyToken(accessToken string) (user.User, error) {
+func (m *MockAuthUsecase) VerifyToken(ctx context.Context, accessToken string) (user.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerifyToken", accessToken)
+	ret := m.ctrl.Call(m, "VerifyToken", ctx, accessToken)
 	ret0, _ := ret[0].(user.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // VerifyToken indicates an expected call of VerifyToken.
-func (mr *MockAuthUsecaseMockRecorder) VerifyToken(accessToken any) *gomock.Call {
+func (mr *MockAuthUsecaseMockRecorder) VerifyToken(ctx, accessToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyToken", reflect.TypeOf((*MockAuthUsecase)(nil).VerifyToken), accessToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyToken", reflect.TypeOf((*MockAuthUsecase)(nil).VerifyToken), ctx, accessToken)
 }

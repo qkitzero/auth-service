@@ -1,14 +1,15 @@
 package keycloak
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"math/big"
 	"net/http"
-	"reflect"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -89,7 +90,7 @@ func TestExchangeCode(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "realm", 1*time.Second)
 
-			token, err := client.ExchangeCode(tt.code, tt.redirectURI)
+			token, err := client.ExchangeCode(context.Background(), tt.code, tt.redirectURI)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -269,7 +270,7 @@ func TestVerifyToken(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "realm", 1*time.Second)
 
-			_, err := client.VerifyToken(tt.accessToken)
+			_, err := client.VerifyToken(context.Background(), tt.accessToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -346,7 +347,7 @@ func TestRefreshToken(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "realm", 1*time.Second)
 
-			token, err := client.RefreshToken(tt.refreshToken)
+			token, err := client.RefreshToken(context.Background(), tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -405,7 +406,7 @@ func TestRevokeToken(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "realm", 1*time.Second)
 
-			err := client.RevokeToken(tt.refreshToken)
+			err := client.RevokeToken(context.Background(), tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}

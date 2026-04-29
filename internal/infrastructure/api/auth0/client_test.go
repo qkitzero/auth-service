@@ -1,14 +1,15 @@
 package auth0
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"math/big"
 	"net/http"
-	"reflect"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -45,7 +46,7 @@ func TestLogin(t *testing.T) {
 
 			client := NewClient(tt.baseURL, tt.clientID, "clientSecret", tt.audience, 1*time.Second)
 
-			loginURL, err := client.Login(tt.redirectURI)
+			loginURL, err := client.Login(context.Background(), tt.redirectURI)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -132,7 +133,7 @@ func TestExchangeCode(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
-			token, err := client.ExchangeCode(tt.code, tt.redirectURI)
+			token, err := client.ExchangeCode(context.Background(), tt.code, tt.redirectURI)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -312,7 +313,7 @@ func TestVerifyToken(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
-			_, err := client.VerifyToken(tt.accessToken)
+			_, err := client.VerifyToken(context.Background(), tt.accessToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -389,7 +390,7 @@ func TestRefreshToken(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
-			token, err := client.RefreshToken(tt.refreshToken)
+			token, err := client.RefreshToken(context.Background(), tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -448,7 +449,7 @@ func TestRevokeToken(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
-			err := client.RevokeToken(tt.refreshToken)
+			err := client.RevokeToken(context.Background(), tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -485,7 +486,7 @@ func TestLogout(t *testing.T) {
 
 			client := NewClient(tt.baseURL, tt.clientID, "clientSecret", "audience", 1*time.Second)
 
-			logoutURL, err := client.Logout(tt.returnTo)
+			logoutURL, err := client.Logout(context.Background(), tt.returnTo)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -559,7 +560,7 @@ func TestGetM2MToken(t *testing.T) {
 
 			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
 
-			token, err := client.GetM2MToken("m2mClientID", "m2mClientSecret")
+			token, err := client.GetM2MToken(context.Background(), "m2mClientID", "m2mClientSecret")
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
