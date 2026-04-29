@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -40,11 +41,11 @@ func TestLogin(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().Login(tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
+			mockIdentityProvider.EXPECT().Login(context.Background(), tt.redirectURI).Return("login url", tt.loginErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
-			_, err := authUsecase.Login(tt.redirectURI)
+			_, err := authUsecase.Login(context.Background(), tt.redirectURI)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -91,11 +92,11 @@ func TestExchangeCode(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().ExchangeCode(tt.code, tt.redirectURI).Return(tt.tokenResult, tt.exchangeCodeErr).AnyTimes()
+			mockIdentityProvider.EXPECT().ExchangeCode(context.Background(), tt.code, tt.redirectURI).Return(tt.tokenResult, tt.exchangeCodeErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
-			_, err := authUsecase.ExchangeCode(tt.code, tt.redirectURI)
+			_, err := authUsecase.ExchangeCode(context.Background(), tt.code, tt.redirectURI)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -146,11 +147,11 @@ func TestVerifyToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().VerifyToken(tt.accessToken).Return(tt.verifyResult, tt.verifyTokenErr).AnyTimes()
+			mockIdentityProvider.EXPECT().VerifyToken(context.Background(), tt.accessToken).Return(tt.verifyResult, tt.verifyTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
-			_, err := authUsecase.VerifyToken(tt.accessToken)
+			_, err := authUsecase.VerifyToken(context.Background(), tt.accessToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -194,11 +195,11 @@ func TestRefreshToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().RefreshToken(tt.refreshToken).Return(tt.tokenResult, tt.refreshTokenErr).AnyTimes()
+			mockIdentityProvider.EXPECT().RefreshToken(context.Background(), tt.refreshToken).Return(tt.tokenResult, tt.refreshTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
-			_, err := authUsecase.RefreshToken(tt.refreshToken)
+			_, err := authUsecase.RefreshToken(context.Background(), tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -233,11 +234,11 @@ func TestRevokeToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().RevokeToken(tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
+			mockIdentityProvider.EXPECT().RevokeToken(context.Background(), tt.refreshToken).Return(tt.revokeTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
-			err := authUsecase.RevokeToken(tt.refreshToken)
+			err := authUsecase.RevokeToken(context.Background(), tt.refreshToken)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -278,11 +279,11 @@ func TestLogout(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().Logout(tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
+			mockIdentityProvider.EXPECT().Logout(context.Background(), tt.returnTo).Return("logout url", tt.logoutErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
-			_, err := authUsecase.Logout(tt.returnTo)
+			_, err := authUsecase.Logout(context.Background(), tt.returnTo)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}
@@ -329,11 +330,11 @@ func TestGetM2MToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockIdentityProvider := mocks.NewMockProvider(ctrl)
-			mockIdentityProvider.EXPECT().GetM2MToken(tt.clientID, tt.clientSecret).Return(tt.tokenResult, tt.getM2MTokenErr).AnyTimes()
+			mockIdentityProvider.EXPECT().GetM2MToken(context.Background(), tt.clientID, tt.clientSecret).Return(tt.tokenResult, tt.getM2MTokenErr).AnyTimes()
 
 			authUsecase := NewAuthUsecase(mockIdentityProvider)
 
-			_, err := authUsecase.GetM2MToken(tt.clientID, tt.clientSecret)
+			_, err := authUsecase.GetM2MToken(context.Background(), tt.clientID, tt.clientSecret)
 			if tt.success && err != nil {
 				t.Errorf("expected no error, but got %v", err)
 			}

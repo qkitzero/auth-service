@@ -24,7 +24,7 @@ func NewAuthHandler(authUsecase auth.AuthUsecase) *AuthHandler {
 }
 
 func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
-	url, err := h.authUsecase.Login(req.GetRedirectUri())
+	url, err := h.authUsecase.Login(ctx, req.GetRedirectUri())
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
@@ -39,7 +39,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 }
 
 func (h *AuthHandler) ExchangeCode(ctx context.Context, req *authv1.ExchangeCodeRequest) (*authv1.ExchangeCodeResponse, error) {
-	token, err := h.authUsecase.ExchangeCode(req.GetCode(), req.GetRedirectUri())
+	token, err := h.authUsecase.ExchangeCode(ctx, req.GetCode(), req.GetRedirectUri())
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
@@ -48,7 +48,7 @@ func (h *AuthHandler) ExchangeCode(ctx context.Context, req *authv1.ExchangeCode
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	user, err := h.authUsecase.VerifyToken(token.AccessToken())
+	user, err := h.authUsecase.VerifyToken(ctx, token.AccessToken())
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
@@ -85,7 +85,7 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRe
 
 	accessToken := strings.TrimPrefix(token, "Bearer ")
 
-	user, err := h.authUsecase.VerifyToken(accessToken)
+	user, err := h.authUsecase.VerifyToken(ctx, accessToken)
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
@@ -112,7 +112,7 @@ func (h *AuthHandler) RefreshToken(ctx context.Context, req *authv1.RefreshToken
 
 	refreshToken := refreshTokens[0]
 
-	token, err := h.authUsecase.RefreshToken(refreshToken)
+	token, err := h.authUsecase.RefreshToken(ctx, refreshToken)
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
@@ -143,7 +143,7 @@ func (h *AuthHandler) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRe
 
 	refreshToken := refreshTokens[0]
 
-	if err := h.authUsecase.RevokeToken(refreshToken); err != nil {
+	if err := h.authUsecase.RevokeToken(ctx, refreshToken); err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
 		}
@@ -155,7 +155,7 @@ func (h *AuthHandler) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRe
 }
 
 func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
-	url, err := h.authUsecase.Logout(req.GetReturnTo())
+	url, err := h.authUsecase.Logout(ctx, req.GetReturnTo())
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
@@ -170,7 +170,7 @@ func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*a
 }
 
 func (h *AuthHandler) GetM2MToken(ctx context.Context, req *authv1.GetM2MTokenRequest) (*authv1.GetM2MTokenResponse, error) {
-	m2mToken, err := h.authUsecase.GetM2MToken(req.GetClientId(), req.GetClientSecret())
+	m2mToken, err := h.authUsecase.GetM2MToken(ctx, req.GetClientId(), req.GetClientSecret())
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err

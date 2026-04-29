@@ -2,6 +2,7 @@ package keycloak
 
 import (
 	"bytes"
+	"context"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -36,11 +37,11 @@ func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Durat
 	}
 }
 
-func (c *client) Login(redirectURI string) (string, error) {
+func (c *client) Login(ctx context.Context, redirectURI string) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (c *client) ExchangeCode(code, redirectURI string) (*identity.TokenResult, error) {
+func (c *client) ExchangeCode(ctx context.Context, code, redirectURI string) (*identity.TokenResult, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.baseURL, c.realm)
 
 	data := url.Values{}
@@ -50,7 +51,7 @@ func (c *client) ExchangeCode(code, redirectURI string) (*identity.TokenResult, 
 	data.Set("client_secret", c.clientSecret)
 	data.Set("redirect_uri", redirectURI)
 
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -77,10 +78,10 @@ func (c *client) ExchangeCode(code, redirectURI string) (*identity.TokenResult, 
 	}, nil
 }
 
-func (c *client) VerifyToken(accessToken string) (*identity.VerifyResult, error) {
+func (c *client) VerifyToken(ctx context.Context, accessToken string) (*identity.VerifyResult, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", c.baseURL, c.realm)
 
-	req, err := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +155,7 @@ func (c *client) VerifyToken(accessToken string) (*identity.VerifyResult, error)
 	return &identity.VerifyResult{Subject: subject}, nil
 }
 
-func (c *client) RefreshToken(refreshToken string) (*identity.TokenResult, error) {
+func (c *client) RefreshToken(ctx context.Context, refreshToken string) (*identity.TokenResult, error) {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", c.baseURL, c.realm)
 
 	data := url.Values{}
@@ -163,7 +164,7 @@ func (c *client) RefreshToken(refreshToken string) (*identity.TokenResult, error
 	data.Set("client_id", c.clientID)
 	data.Set("client_secret", c.clientSecret)
 
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +191,7 @@ func (c *client) RefreshToken(refreshToken string) (*identity.TokenResult, error
 	}, nil
 }
 
-func (c *client) RevokeToken(refreshToken string) error {
+func (c *client) RevokeToken(ctx context.Context, refreshToken string) error {
 	endpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", c.baseURL, c.realm)
 
 	data := url.Values{}
@@ -198,7 +199,7 @@ func (c *client) RevokeToken(refreshToken string) error {
 	data.Set("client_secret", c.clientSecret)
 	data.Set("refresh_token", refreshToken)
 
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return err
 	}
@@ -217,10 +218,10 @@ func (c *client) RevokeToken(refreshToken string) error {
 	return nil
 }
 
-func (c *client) Logout(returnTo string) (string, error) {
+func (c *client) Logout(ctx context.Context, returnTo string) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (c *client) GetM2MToken(clientID, clientSecret string) (*identity.TokenResult, error) {
+func (c *client) GetM2MToken(ctx context.Context, clientID, clientSecret string) (*identity.TokenResult, error) {
 	return nil, errors.New("not implemented")
 }
