@@ -28,12 +28,12 @@ const (
 )
 
 type config struct {
-	Env                string
-	Port               string
-	Auth0BaseURL       string
-	Auth0ClientID      string
-	Auth0ClientSecret  string
-	Auth0Audience      string
+	Env               string
+	Port              string
+	Auth0BaseURL      string
+	Auth0ClientID     string
+	Auth0ClientSecret string
+	Auth0Audience     string
 }
 
 func loadConfig() (config, error) {

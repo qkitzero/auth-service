@@ -1,0 +1,22 @@
+version: "2"
+
+linters:
+  default: standard
+  settings:
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (*encoding/json.Encoder).Encode
+  exclusions:
+    paths:
+      - gen
+      - mocks
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  exclusions:
+    paths:
+      - gen
+      - mocks
