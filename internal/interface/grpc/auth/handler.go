@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 
 	authv1 "github.com/qkitzero/auth-service/gen/go/auth/v1"
 	"github.com/qkitzero/auth-service/internal/application/auth"
+	"github.com/qkitzero/auth-service/internal/domain/token"
 )
 
 type AuthHandler struct {
@@ -39,31 +41,39 @@ func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 }
 
 func (h *AuthHandler) ExchangeCode(ctx context.Context, req *authv1.ExchangeCodeRequest) (*authv1.ExchangeCodeResponse, error) {
-	token, err := h.authUsecase.ExchangeCode(ctx, req.GetCode(), req.GetRedirectUri())
+	tk, err := h.authUsecase.ExchangeCode(ctx, req.GetCode(), req.GetRedirectUri())
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
+		}
+		switch {
+		case errors.Is(err, token.ErrInvalidGrant):
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 		log.Printf("ExchangeCode: internal error: %v", err)
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	user, err := h.authUsecase.VerifyToken(ctx, token.AccessToken())
+	user, err := h.authUsecase.VerifyToken(ctx, tk.AccessToken())
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
+		}
+		switch {
+		case errors.Is(err, token.ErrInvalidToken):
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 		log.Printf("ExchangeCode: internal error: %v", err)
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	if err := grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken())); err != nil {
+	if err := grpc.SendHeader(ctx, metadata.Pairs("refresh-token", tk.RefreshToken())); err != nil {
 		log.Printf("failed to send refresh-token header: %v", err)
 	}
 
 	return &authv1.ExchangeCodeResponse{
 		UserId:      user.ID().String(),
-		AccessToken: token.AccessToken(),
+		AccessToken: tk.AccessToken(),
 	}, nil
 }
 
@@ -78,17 +88,21 @@ func (h *AuthHandler) VerifyToken(ctx context.Context, req *authv1.VerifyTokenRe
 		return nil, status.Error(codes.Unauthenticated, "authorization is missing")
 	}
 
-	token := authorizations[0]
-	if !strings.HasPrefix(token, "Bearer ") {
+	tokenStr := authorizations[0]
+	if !strings.HasPrefix(tokenStr, "Bearer ") {
 		return nil, status.Error(codes.Unauthenticated, "authorization header must start with 'Bearer '")
 	}
 
-	accessToken := strings.TrimPrefix(token, "Bearer ")
+	accessToken := strings.TrimPrefix(tokenStr, "Bearer ")
 
 	user, err := h.authUsecase.VerifyToken(ctx, accessToken)
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
+		}
+		switch {
+		case errors.Is(err, token.ErrInvalidToken):
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 		log.Printf("VerifyToken: internal error: %v", err)
 		return nil, status.Error(codes.Internal, "internal error")
@@ -112,21 +126,25 @@ func (h *AuthHandler) RefreshToken(ctx context.Context, req *authv1.RefreshToken
 
 	refreshToken := refreshTokens[0]
 
-	token, err := h.authUsecase.RefreshToken(ctx, refreshToken)
+	tk, err := h.authUsecase.RefreshToken(ctx, refreshToken)
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
+		}
+		switch {
+		case errors.Is(err, token.ErrInvalidGrant):
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 		log.Printf("RefreshToken: internal error: %v", err)
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	if err := grpc.SendHeader(ctx, metadata.Pairs("refresh-token", token.RefreshToken())); err != nil {
+	if err := grpc.SendHeader(ctx, metadata.Pairs("refresh-token", tk.RefreshToken())); err != nil {
 		log.Printf("failed to send refresh-token header: %v", err)
 	}
 
 	return &authv1.RefreshTokenResponse{
-		AccessToken: token.AccessToken(),
+		AccessToken: tk.AccessToken(),
 	}, nil
 }
 
@@ -146,6 +164,10 @@ func (h *AuthHandler) RevokeToken(ctx context.Context, req *authv1.RevokeTokenRe
 	if err := h.authUsecase.RevokeToken(ctx, refreshToken); err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
+		}
+		switch {
+		case errors.Is(err, token.ErrInvalidGrant):
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 		log.Printf("RevokeToken: internal error: %v", err)
 		return nil, status.Error(codes.Internal, "internal error")
@@ -174,6 +196,10 @@ func (h *AuthHandler) GetM2MToken(ctx context.Context, req *authv1.GetM2MTokenRe
 	if err != nil {
 		if _, ok := status.FromError(err); ok {
 			return nil, err
+		}
+		switch {
+		case errors.Is(err, token.ErrInvalidGrant):
+			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
 		log.Printf("GetM2MToken: internal error: %v", err)
 		return nil, status.Error(codes.Internal, "internal error")

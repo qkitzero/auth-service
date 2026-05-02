@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	authv1 "github.com/qkitzero/auth-service/gen/go/auth/v1"
+	"github.com/qkitzero/auth-service/internal/domain/token"
 	"github.com/qkitzero/auth-service/internal/domain/user"
 	mocksappauth "github.com/qkitzero/auth-service/mocks/application/auth"
 	mockstoken "github.com/qkitzero/auth-service/mocks/domain/token"
@@ -65,8 +66,10 @@ func TestExchangeCode(t *testing.T) {
 	}{
 		{"success exchange code", context.Background(), "code", "http://localhost:3000/callback", nil, true, nil, codes.OK},
 		{"failure exchange error", context.Background(), "code", "http://localhost:3000/callback", errors.New("exchange code error"), false, nil, codes.Internal},
+		{"failure exchange invalid grant", context.Background(), "code", "http://localhost:3000/callback", token.ErrInvalidGrant, false, nil, codes.Unauthenticated},
 		{"failure exchange status preserved", context.Background(), "code", "http://localhost:3000/callback", status.Error(codes.Unauthenticated, "auth"), false, nil, codes.Unauthenticated},
 		{"failure verify token error", context.Background(), "code", "http://localhost:3000/callback", nil, true, errors.New("verify token error"), codes.Internal},
+		{"failure verify token invalid token", context.Background(), "code", "http://localhost:3000/callback", nil, true, token.ErrInvalidToken, codes.Unauthenticated},
 		{"failure verify token status preserved", context.Background(), "code", "http://localhost:3000/callback", nil, true, status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
@@ -114,6 +117,7 @@ func TestVerifyToken(t *testing.T) {
 		{"failure missing authorization", metadata.NewIncomingContext(context.Background(), metadata.Pairs()), false, nil, codes.Unauthenticated},
 		{"failure missing bearer prefix", metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", accessToken)), false, nil, codes.Unauthenticated},
 		{"failure verify token error", metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)), true, errors.New("verify token error"), codes.Internal},
+		{"failure invalid token", metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)), true, token.ErrInvalidToken, codes.Unauthenticated},
 		{"failure status preserved", metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+accessToken)), true, status.Error(codes.Unauthenticated, "rejected"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
@@ -155,6 +159,7 @@ func TestRefreshToken(t *testing.T) {
 		{"failure missing metadata", context.Background(), false, nil, codes.Unauthenticated},
 		{"failure missing refresh token", metadata.NewIncomingContext(context.Background(), metadata.Pairs()), false, nil, codes.Unauthenticated},
 		{"failure refresh token error", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, errors.New("refresh token error"), codes.Internal},
+		{"failure refresh invalid grant", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, token.ErrInvalidGrant, codes.Unauthenticated},
 		{"failure status preserved", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
@@ -197,6 +202,7 @@ func TestRevokeToken(t *testing.T) {
 		{"failure missing metadata", context.Background(), false, nil, codes.Unauthenticated},
 		{"failure missing refresh token", metadata.NewIncomingContext(context.Background(), metadata.Pairs()), false, nil, codes.Unauthenticated},
 		{"failure revoke token error", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, errors.New("revoke token error"), codes.Internal},
+		{"failure revoke invalid grant", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, token.ErrInvalidGrant, codes.Unauthenticated},
 		{"failure status preserved", metadata.NewIncomingContext(context.Background(), metadata.Pairs("refresh-token", refreshToken)), true, status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {
@@ -268,6 +274,7 @@ func TestGetM2MToken(t *testing.T) {
 	}{
 		{"success get m2m token", context.Background(), "m2mClientID", "m2mClientSecret", nil, codes.OK},
 		{"failure get m2m token error", context.Background(), "m2mClientID", "m2mClientSecret", errors.New("get m2m token error"), codes.Internal},
+		{"failure get m2m invalid grant", context.Background(), "m2mClientID", "m2mClientSecret", token.ErrInvalidGrant, codes.Unauthenticated},
 		{"failure status preserved", context.Background(), "m2mClientID", "m2mClientSecret", status.Error(codes.Unauthenticated, "auth"), codes.Unauthenticated},
 	}
 	for _, tt := range tests {

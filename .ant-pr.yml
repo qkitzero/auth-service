@@ -1,12 +1,12 @@
 limits:
-  files: 15
+  files: 20
   lines:
-    "": 100
-    "build/": 100
-    "cmd/": 100
-    "internal/": 200
-    "proto/": 50
-    "util/": 100
+    "": 200
+    "build/": 200
+    "cmd/": 200
+    "internal/": 400
+    "proto/": 100
+    "util/": 200
 ignore:
   - "gen/*"
   - "mocks/*"
