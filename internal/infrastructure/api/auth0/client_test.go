@@ -6,9 +6,11 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -16,48 +18,138 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/qkitzero/auth-service/internal/application/identity"
+	"github.com/qkitzero/auth-service/internal/domain/token"
 )
+
+const (
+	tokenPath  = "/oauth/token"
+	jwksPath   = "/.well-known/jwks.json"
+	revokePath = "/oauth/revoke"
+)
+
+const invalidBaseURL = "http://\x7f"
+
+var (
+	errUnmapped     = errors.New("unmapped error")
+	errRequestBuild = errors.New("request build error")
+)
+
+func assertError(t *testing.T, err error, want ...error) {
+	t.Helper()
+
+	if len(want) == 0 {
+		if err != nil {
+			t.Errorf("expected no error, but got %v", err)
+		}
+		return
+	}
+	if err == nil {
+		t.Errorf("expected error %v, but got nil", want)
+		return
+	}
+	for _, wantErr := range want {
+		switch wantErr {
+		case errUnmapped:
+			if errors.Is(err, token.ErrInvalidGrant) || errors.Is(err, token.ErrInvalidToken) {
+				t.Errorf("expected an unmapped error, but got %v", err)
+			}
+		case errRequestBuild:
+			var urlErr *url.Error
+			if !errors.As(err, &urlErr) || urlErr.Op != "parse" {
+				t.Errorf("expected a request build error, but got %v", err)
+			}
+		default:
+			if !errors.Is(err, wantErr) {
+				t.Errorf("expected errors.Is(err, %v), but got %v", wantErr, err)
+			}
+		}
+	}
+}
+
+func newPublicKey(kid string, key *rsa.PublicKey) PublicKey {
+	return PublicKey{
+		Kid: kid,
+		N:   base64.RawURLEncoding.EncodeToString(key.N.Bytes()),
+		E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(key.E)).Bytes()),
+	}
+}
+
+func jwksHandler(keys ...PublicKey) http.HandlerFunc {
+	if keys == nil {
+		keys = []PublicKey{}
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(PublicKeyResponse{Keys: keys})
+	}
+}
+
+func statusHandler(statusCode int) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(statusCode)
+	}
+}
+
+func tokenResponseHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(&TokenResponse{
+			AccessToken:      "accessToken",
+			RefreshToken:     "refreshToken",
+			ExpiresIn:        3600,
+			RefreshExpiresIn: 3600,
+		})
+	}
+}
+
+func m2mTokenResponseHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(&TokenResponse{
+			AccessToken: "m2mAccessToken",
+			ExpiresIn:   86400,
+		})
+	}
+}
+
+func slowHandler(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(2 * time.Second)
+		handler(w, r)
+	}
+}
+
+func expectRequest(t *testing.T, wantMethod, wantPath string, handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != wantMethod {
+			t.Errorf("method = %s, want %s", r.Method, wantMethod)
+		}
+		if r.URL.Path != wantPath {
+			t.Errorf("path = %s, want %s", r.URL.Path, wantPath)
+		}
+		handler(w, r)
+	}
+}
+
+func newTestClient(baseURL, serverURL string) identity.Provider {
+	if baseURL == "" {
+		baseURL = serverURL
+	}
+	return NewClient(baseURL, "clientID", "clientSecret", "audience", 1*time.Second)
+}
 
 func TestLogin(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
-		name             string
-		success          bool
-		redirectURI      string
-		baseURL          string
-		clientID         string
-		audience         string
-		expectedLoginURL string
-	}{
-		{
-			name:             "success login",
-			success:          true,
-			baseURL:          "https://domain.auth0.com",
-			clientID:         "clientID",
-			audience:         "audience",
-			redirectURI:      "http://localhost:3000/callback",
-			expectedLoginURL: "https://domain.auth0.com/authorize?audience=audience&client_id=clientID&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&response_type=code&scope=openid+profile+email+offline_access",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 
-			client := NewClient(tt.baseURL, tt.clientID, "clientSecret", tt.audience, 1*time.Second)
+	client := NewClient("https://domain.auth0.com", "clientID", "clientSecret", "audience", 1*time.Second)
 
-			loginURL, err := client.Login(context.Background(), tt.redirectURI)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
-			}
+	expectedLoginURL := "https://domain.auth0.com/authorize?audience=audience&client_id=clientID&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&response_type=code&scope=openid+profile+email+offline_access"
 
-			if tt.success && loginURL != tt.expectedLoginURL {
-				t.Errorf("expected login URL %s, got %s", tt.expectedLoginURL, loginURL)
-			}
-		})
+	loginURL, err := client.Login(context.Background(), "http://localhost:3000/callback")
+	assertError(t, err)
+
+	if loginURL != expectedLoginURL {
+		t.Errorf("expected login URL %s, got %s", expectedLoginURL, loginURL)
 	}
 }
 
@@ -65,61 +157,72 @@ func TestExchangeCode(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name        string
-		success     bool
 		code        string
 		redirectURI string
+		baseURL     string
 		handler     http.HandlerFunc
+		wantErrs    []error
 		expected    *identity.TokenResult
 	}{
 		{
 			name:        "success exchange code",
-			success:     true,
 			code:        "code",
 			redirectURI: "http://localhost:3000/callback",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(&TokenResponse{
-					AccessToken:      "accessToken",
-					RefreshToken:     "refreshToken",
-					ExpiresIn:        3600,
-					RefreshExpiresIn: 3600,
-				})
-			},
+			handler:     tokenResponseHandler(),
+			wantErrs:    nil,
 			expected: &identity.TokenResult{
 				AccessToken:  "accessToken",
 				RefreshToken: "refreshToken",
 			},
 		},
 		{
-			name:        "failure auth0 error",
-			success:     false,
+			name:        "failure invalid grant on bad request",
+			code:        "expiredCode",
+			redirectURI: "http://localhost:3000/callback",
+			handler:     statusHandler(http.StatusBadRequest),
+			wantErrs:    []error{token.ErrInvalidGrant},
+			expected:    nil,
+		},
+		{
+			name:        "failure invalid grant on unauthorized",
 			code:        "code",
 			redirectURI: "http://localhost:3000/callback",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
-			},
-			expected: nil,
+			handler:     statusHandler(http.StatusUnauthorized),
+			wantErrs:    []error{token.ErrInvalidGrant},
+			expected:    nil,
+		},
+		{
+			name:        "failure auth0 error",
+			code:        "code",
+			redirectURI: "http://localhost:3000/callback",
+			handler:     statusHandler(http.StatusInternalServerError),
+			wantErrs:    []error{errUnmapped},
+			expected:    nil,
 		},
 		{
 			name:        "failure auth0 json error",
-			success:     false,
 			code:        "code",
 			redirectURI: "http://localhost:3000/callback",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			},
-			expected: nil,
+			handler:     statusHandler(http.StatusOK),
+			wantErrs:    []error{errUnmapped},
+			expected:    nil,
+		},
+		{
+			name:        "failure invalid base url",
+			code:        "code",
+			redirectURI: "http://localhost:3000/callback",
+			baseURL:     invalidBaseURL,
+			handler:     tokenResponseHandler(),
+			wantErrs:    []error{errUnmapped, errRequestBuild},
+			expected:    nil,
 		},
 		{
 			name:        "failure timeout",
-			success:     false,
 			code:        "code",
 			redirectURI: "http://localhost:3000/callback",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(2 * time.Second)
-				w.WriteHeader(http.StatusOK)
-			},
-			expected: nil,
+			handler:     slowHandler(tokenResponseHandler()),
+			wantErrs:    []error{errUnmapped},
+			expected:    nil,
 		},
 	}
 
@@ -128,21 +231,16 @@ func TestExchangeCode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(tt.handler)
+			server := httptest.NewServer(expectRequest(t, http.MethodPost, tokenPath, tt.handler))
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
+			client := newTestClient(tt.baseURL, server.URL)
 
-			token, err := client.ExchangeCode(context.Background(), tt.code, tt.redirectURI)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
-			}
+			result, err := client.ExchangeCode(context.Background(), tt.code, tt.redirectURI)
+			assertError(t, err, tt.wantErrs...)
 
-			if tt.success && !reflect.DeepEqual(token, tt.expected) {
-				t.Errorf("token = %v, want %v", token, tt.expected)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("token = %v, want %v", result, tt.expected)
 			}
 		})
 	}
@@ -151,156 +249,136 @@ func TestExchangeCode(t *testing.T) {
 func TestVerifyToken(t *testing.T) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		t.Errorf("failed to generate private key: %v", err)
+		t.Fatalf("failed to generate private key: %v", err)
 	}
 	publicKey := &privateKey.PublicKey
 	kid := "kid"
+	subject := "126ff835-d63f-4f44-a3aa-b5e530b98991"
 
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{"sub": "126ff835-d63f-4f44-a3aa-b5e530b98991"})
-	jwtToken.Header["kid"] = kid
-	accessToken, err := jwtToken.SignedString(privateKey)
-	if err != nil {
-		t.Errorf("failed to sign token: %v", err)
+	signToken := func(method jwt.SigningMethod, key any, headerKid string, claims jwt.MapClaims) string {
+		t.Helper()
+
+		jwtToken := jwt.NewWithClaims(method, claims)
+		if headerKid != "" {
+			jwtToken.Header["kid"] = headerKid
+		}
+		signed, signErr := jwtToken.SignedString(key)
+		if signErr != nil {
+			t.Fatalf("failed to sign token: %v", signErr)
+		}
+		return signed
 	}
+
+	accessToken := signToken(jwt.SigningMethodRS256, privateKey, kid, jwt.MapClaims{"sub": subject})
 
 	t.Parallel()
 	tests := []struct {
 		name        string
-		success     bool
 		accessToken string
+		baseURL     string
 		handler     http.HandlerFunc
+		wantErrs    []error
+		expected    *identity.VerifyResult
 	}{
 		{
 			name:        "success verify token",
-			success:     true,
 			accessToken: accessToken,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
-					Keys: []PublicKey{
-						{
-							Kid: kid,
-							N:   base64.RawURLEncoding.EncodeToString(publicKey.N.Bytes()),
-							E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(publicKey.E)).Bytes()),
-						},
-					},
-				})
-			},
+			handler:     jwksHandler(newPublicKey(kid, publicKey)),
+			wantErrs:    nil,
+			expected:    &identity.VerifyResult{Subject: subject},
 		},
 		{
 			name:        "failure invalid token",
-			success:     false,
 			accessToken: "invalidToken",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
-					Keys: []PublicKey{
-						{
-							Kid: kid,
-							N:   base64.RawURLEncoding.EncodeToString(publicKey.N.Bytes()),
-							E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(publicKey.E)).Bytes()),
-						},
-					},
-				})
-			},
+			handler:     jwksHandler(newPublicKey(kid, publicKey)),
+			wantErrs:    []error{token.ErrInvalidToken, jwt.ErrTokenMalformed},
+			expected:    nil,
 		},
 		{
-			name:    "failure unexpected signing method",
-			success: false,
-			accessToken: func() string {
-				unexpectedSigningMethodToken, err := jwt.New(jwt.SigningMethodHS256).SignedString([]byte("secret"))
-				if err != nil {
-					t.Errorf("failed to sign token: %v", err)
-				}
-				return unexpectedSigningMethodToken
-			}(),
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
-					Keys: []PublicKey{
-						{
-							Kid: kid,
-							N:   base64.RawURLEncoding.EncodeToString(publicKey.N.Bytes()),
-							E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(publicKey.E)).Bytes()),
-						},
-					},
-				})
-			},
+			name:        "failure unexpected signing method",
+			accessToken: signToken(jwt.SigningMethodHS256, []byte("secret"), kid, jwt.MapClaims{"sub": subject}),
+			handler:     jwksHandler(newPublicKey(kid, publicKey)),
+			wantErrs:    []error{token.ErrInvalidToken, errUnexpectedSigningMethod},
+			expected:    nil,
 		},
 		{
-			name:    "failure no kid in token header",
-			success: false,
-			accessToken: func() string {
-				tokenWithoutKid := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{"sub": "sub"})
-				accessToken, err := tokenWithoutKid.SignedString(privateKey)
-				if err != nil {
-					t.Errorf("failed to sign token: %v", err)
-				}
-				return accessToken
-			}(),
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
-					Keys: []PublicKey{
-						{
-							Kid: kid,
-							N:   base64.RawURLEncoding.EncodeToString(publicKey.N.Bytes()),
-							E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(publicKey.E)).Bytes()),
-						},
-					},
-				})
-			},
-		},
-		{
-			name:        "failure auth0 error",
-			success:     false,
-			accessToken: accessToken,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
-			},
-		},
-		{
-			name:        "failure auth0 json error",
-			success:     false,
-			accessToken: accessToken,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			},
-		},
-		{
-			name:        "failure auth0 response has no keys",
-			success:     false,
-			accessToken: accessToken,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(PublicKeyResponse{Keys: []PublicKey{}})
-			},
+			name:        "failure no kid in token header",
+			accessToken: signToken(jwt.SigningMethodRS256, privateKey, "", jwt.MapClaims{"sub": subject}),
+			handler:     jwksHandler(newPublicKey(kid, publicKey)),
+			wantErrs:    []error{token.ErrInvalidToken, errMissingKid},
+			expected:    nil,
 		},
 		{
 			name:        "failure could not find public key",
-			success:     false,
 			accessToken: accessToken,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(PublicKeyResponse{
-					Keys: []PublicKey{
-						{
-							Kid: "",
-							N:   base64.RawURLEncoding.EncodeToString(publicKey.N.Bytes()),
-							E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(publicKey.E)).Bytes()),
-						},
-					},
-				})
-			},
+			handler:     jwksHandler(newPublicKey("otherKid", publicKey)),
+			wantErrs:    []error{token.ErrInvalidToken, errPublicKeyNotFound},
+			expected:    nil,
+		},
+		{
+			name:        "failure invalid public key modulus",
+			accessToken: accessToken,
+			handler: jwksHandler(PublicKey{
+				Kid: kid,
+				N:   "not!base64",
+				E:   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(publicKey.E)).Bytes()),
+			}),
+			wantErrs: []error{errUnmapped, errInvalidPublicKeyModulus},
+			expected: nil,
+		},
+		{
+			name:        "failure invalid public key exponent",
+			accessToken: accessToken,
+			handler: jwksHandler(PublicKey{
+				Kid: kid,
+				N:   base64.RawURLEncoding.EncodeToString(publicKey.N.Bytes()),
+				E:   "not!base64",
+			}),
+			wantErrs: []error{errUnmapped, errInvalidPublicKeyExponent},
+			expected: nil,
+		},
+		{
+			name:        "failure subject is not a string",
+			accessToken: signToken(jwt.SigningMethodRS256, privateKey, kid, jwt.MapClaims{"sub": 123}),
+			handler:     jwksHandler(newPublicKey(kid, publicKey)),
+			wantErrs:    []error{token.ErrInvalidToken, jwt.ErrInvalidType},
+			expected:    nil,
+		},
+		{
+			name:        "failure auth0 error",
+			accessToken: accessToken,
+			handler:     statusHandler(http.StatusInternalServerError),
+			wantErrs:    []error{errUnmapped},
+			expected:    nil,
+		},
+		{
+			name:        "failure auth0 json error",
+			accessToken: accessToken,
+			handler:     statusHandler(http.StatusOK),
+			wantErrs:    []error{errUnmapped},
+			expected:    nil,
+		},
+		{
+			name:        "failure auth0 response has no keys",
+			accessToken: accessToken,
+			handler:     jwksHandler(),
+			wantErrs:    []error{errUnmapped, errMissingPublicKey},
+			expected:    nil,
+		},
+		{
+			name:        "failure invalid base url",
+			accessToken: accessToken,
+			baseURL:     invalidBaseURL,
+			handler:     jwksHandler(newPublicKey(kid, publicKey)),
+			wantErrs:    []error{errUnmapped, errRequestBuild},
+			expected:    nil,
 		},
 		{
 			name:        "failure timeout",
-			success:     false,
 			accessToken: accessToken,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(2 * time.Second)
-				w.WriteHeader(http.StatusOK)
-			},
+			handler:     slowHandler(jwksHandler(newPublicKey(kid, publicKey))),
+			wantErrs:    []error{errUnmapped},
+			expected:    nil,
 		},
 	}
 	for _, tt := range tests {
@@ -308,17 +386,16 @@ func TestVerifyToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(tt.handler)
+			server := httptest.NewServer(expectRequest(t, http.MethodGet, jwksPath, tt.handler))
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
+			client := newTestClient(tt.baseURL, server.URL)
 
-			_, err := client.VerifyToken(context.Background(), tt.accessToken)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
+			result, err := client.VerifyToken(context.Background(), tt.accessToken)
+			assertError(t, err, tt.wantErrs...)
+
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("result = %v, want %v", result, tt.expected)
 			}
 		})
 	}
@@ -328,56 +405,64 @@ func TestRefreshToken(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name         string
-		success      bool
 		refreshToken string
+		baseURL      string
 		handler      http.HandlerFunc
+		wantErrs     []error
 		expected     *identity.TokenResult
 	}{
 		{
 			name:         "success refresh token",
-			success:      true,
 			refreshToken: "refreshToken",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(&TokenResponse{
-					AccessToken:      "accessToken",
-					RefreshToken:     "refreshToken",
-					ExpiresIn:        3600,
-					RefreshExpiresIn: 3600,
-				})
-			},
+			handler:      tokenResponseHandler(),
+			wantErrs:     nil,
 			expected: &identity.TokenResult{
 				AccessToken:  "accessToken",
 				RefreshToken: "refreshToken",
 			},
 		},
 		{
-			name:         "failure auth0 error",
-			success:      false,
+			name:         "failure invalid grant on bad request",
+			refreshToken: "expiredRefreshToken",
+			handler:      statusHandler(http.StatusBadRequest),
+			wantErrs:     []error{token.ErrInvalidGrant},
+			expected:     nil,
+		},
+		{
+			name:         "failure invalid grant on unauthorized",
 			refreshToken: "refreshToken",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
-			},
-			expected: nil,
+			handler:      statusHandler(http.StatusUnauthorized),
+			wantErrs:     []error{token.ErrInvalidGrant},
+			expected:     nil,
+		},
+		{
+			name:         "failure auth0 error",
+			refreshToken: "refreshToken",
+			handler:      statusHandler(http.StatusInternalServerError),
+			wantErrs:     []error{errUnmapped},
+			expected:     nil,
 		},
 		{
 			name:         "failure auth0 json error",
-			success:      false,
 			refreshToken: "refreshToken",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			},
-			expected: nil,
+			handler:      statusHandler(http.StatusOK),
+			wantErrs:     []error{errUnmapped},
+			expected:     nil,
+		},
+		{
+			name:         "failure invalid base url",
+			refreshToken: "refreshToken",
+			baseURL:      invalidBaseURL,
+			handler:      tokenResponseHandler(),
+			wantErrs:     []error{errUnmapped, errRequestBuild},
+			expected:     nil,
 		},
 		{
 			name:         "failure timeout",
-			success:      false,
 			refreshToken: "refreshToken",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(2 * time.Second)
-				w.WriteHeader(http.StatusOK)
-			},
-			expected: nil,
+			handler:      slowHandler(tokenResponseHandler()),
+			wantErrs:     []error{errUnmapped},
+			expected:     nil,
 		},
 	}
 	for _, tt := range tests {
@@ -385,21 +470,16 @@ func TestRefreshToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(tt.handler)
+			server := httptest.NewServer(expectRequest(t, http.MethodPost, tokenPath, tt.handler))
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
+			client := newTestClient(tt.baseURL, server.URL)
 
-			token, err := client.RefreshToken(context.Background(), tt.refreshToken)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
-			}
+			result, err := client.RefreshToken(context.Background(), tt.refreshToken)
+			assertError(t, err, tt.wantErrs...)
 
-			if tt.success && !reflect.DeepEqual(token, tt.expected) {
-				t.Errorf("token = %v, want %v", token, tt.expected)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("token = %v, want %v", result, tt.expected)
 			}
 		})
 	}
@@ -409,34 +489,53 @@ func TestRevokeToken(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name         string
-		success      bool
 		refreshToken string
+		baseURL      string
 		handler      http.HandlerFunc
+		wantErrs     []error
 	}{
 		{
 			name:         "success revoke token",
-			success:      true,
 			refreshToken: "refreshToken",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			},
+			handler:      statusHandler(http.StatusOK),
+			wantErrs:     nil,
+		},
+		{
+			name:         "failure invalid grant on bad request",
+			refreshToken: "expiredRefreshToken",
+			handler:      statusHandler(http.StatusBadRequest),
+			wantErrs:     []error{token.ErrInvalidGrant},
+		},
+		{
+			name:         "failure invalid grant on unauthorized",
+			refreshToken: "refreshToken",
+			handler:      statusHandler(http.StatusUnauthorized),
+			wantErrs:     []error{token.ErrInvalidGrant},
+		},
+		{
+			name:         "failure unexpected success status",
+			refreshToken: "refreshToken",
+			handler:      statusHandler(http.StatusNoContent),
+			wantErrs:     []error{errUnmapped},
 		},
 		{
 			name:         "failure auth0 error",
-			success:      false,
 			refreshToken: "refreshToken",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
-			},
+			handler:      statusHandler(http.StatusInternalServerError),
+			wantErrs:     []error{errUnmapped},
+		},
+		{
+			name:         "failure invalid base url",
+			refreshToken: "refreshToken",
+			baseURL:      invalidBaseURL,
+			handler:      statusHandler(http.StatusOK),
+			wantErrs:     []error{errUnmapped, errRequestBuild},
 		},
 		{
 			name:         "failure timeout",
-			success:      false,
 			refreshToken: "refreshToken",
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(2 * time.Second)
-				w.WriteHeader(http.StatusOK)
-			},
+			handler:      slowHandler(statusHandler(http.StatusOK)),
+			wantErrs:     []error{errUnmapped},
 		},
 	}
 	for _, tt := range tests {
@@ -444,60 +543,28 @@ func TestRevokeToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(tt.handler)
+			server := httptest.NewServer(expectRequest(t, http.MethodPost, revokePath, tt.handler))
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
+			client := newTestClient(tt.baseURL, server.URL)
 
-			err := client.RevokeToken(context.Background(), tt.refreshToken)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
-			}
+			assertError(t, client.RevokeToken(context.Background(), tt.refreshToken), tt.wantErrs...)
 		})
 	}
 }
 
 func TestLogout(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
-		name              string
-		success           bool
-		baseURL           string
-		clientID          string
-		returnTo          string
-		expectedLogoutURL string
-	}{
-		{
-			name:              "success logout",
-			success:           true,
-			baseURL:           "https://domain.auth0.com",
-			clientID:          "clientID",
-			returnTo:          "http://localhost:3000",
-			expectedLogoutURL: "https://domain.auth0.com/v2/logout?client_id=clientID&returnTo=http%3A%2F%2Flocalhost%3A3000",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 
-			client := NewClient(tt.baseURL, tt.clientID, "clientSecret", "audience", 1*time.Second)
+	client := NewClient("https://domain.auth0.com", "clientID", "clientSecret", "audience", 1*time.Second)
 
-			logoutURL, err := client.Logout(context.Background(), tt.returnTo)
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
-			}
+	expectedLogoutURL := "https://domain.auth0.com/v2/logout?client_id=clientID&returnTo=http%3A%2F%2Flocalhost%3A3000"
 
-			if tt.success && logoutURL != tt.expectedLogoutURL {
-				t.Errorf("expected logout URL %s, got %s", tt.expectedLogoutURL, logoutURL)
-			}
-		})
+	logoutURL, err := client.Logout(context.Background(), "http://localhost:3000")
+	assertError(t, err)
+
+	if logoutURL != expectedLogoutURL {
+		t.Errorf("expected logout URL %s, got %s", expectedLogoutURL, logoutURL)
 	}
 }
 
@@ -505,47 +572,54 @@ func TestGetM2MToken(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		success  bool
+		baseURL  string
 		handler  http.HandlerFunc
+		wantErrs []error
 		expected *identity.TokenResult
 	}{
 		{
-			name:    "success get m2m token",
-			success: true,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(&TokenResponse{
-					AccessToken: "m2mAccessToken",
-					ExpiresIn:   86400,
-				})
-			},
+			name:     "success get m2m token",
+			handler:  m2mTokenResponseHandler(),
+			wantErrs: nil,
 			expected: &identity.TokenResult{
 				AccessToken: "m2mAccessToken",
 			},
 		},
 		{
-			name:    "failure auth0 error",
-			success: false,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusInternalServerError)
-			},
+			name:     "failure invalid grant on bad request",
+			handler:  statusHandler(http.StatusBadRequest),
+			wantErrs: []error{token.ErrInvalidGrant},
 			expected: nil,
 		},
 		{
-			name:    "failure auth0 json error",
-			success: false,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			},
+			name:     "failure invalid grant on unauthorized",
+			handler:  statusHandler(http.StatusUnauthorized),
+			wantErrs: []error{token.ErrInvalidGrant},
 			expected: nil,
 		},
 		{
-			name:    "failure timeout",
-			success: false,
-			handler: func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(2 * time.Second)
-				w.WriteHeader(http.StatusOK)
-			},
+			name:     "failure auth0 error",
+			handler:  statusHandler(http.StatusInternalServerError),
+			wantErrs: []error{errUnmapped},
+			expected: nil,
+		},
+		{
+			name:     "failure auth0 json error",
+			handler:  statusHandler(http.StatusOK),
+			wantErrs: []error{errUnmapped},
+			expected: nil,
+		},
+		{
+			name:     "failure invalid base url",
+			baseURL:  invalidBaseURL,
+			handler:  m2mTokenResponseHandler(),
+			wantErrs: []error{errUnmapped, errRequestBuild},
+			expected: nil,
+		},
+		{
+			name:     "failure timeout",
+			handler:  slowHandler(m2mTokenResponseHandler()),
+			wantErrs: []error{errUnmapped},
 			expected: nil,
 		},
 	}
@@ -555,21 +629,77 @@ func TestGetM2MToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(tt.handler)
+			server := httptest.NewServer(expectRequest(t, http.MethodPost, tokenPath, tt.handler))
 			defer server.Close()
 
-			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 1*time.Second)
+			client := newTestClient(tt.baseURL, server.URL)
 
-			token, err := client.GetM2MToken(context.Background(), "m2mClientID", "m2mClientSecret")
-			if tt.success && err != nil {
-				t.Errorf("expected no error, but got %v", err)
-			}
-			if !tt.success && err == nil {
-				t.Errorf("expected error, but got nil")
-			}
+			result, err := client.GetM2MToken(context.Background(), "m2mClientID", "m2mClientSecret")
+			assertError(t, err, tt.wantErrs...)
 
-			if tt.success && !reflect.DeepEqual(token, tt.expected) {
-				t.Errorf("token = %v, want %v", token, tt.expected)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("token = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestContextCancellation(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name   string
+		invoke func(context.Context, identity.Provider) error
+	}{
+		{
+			name: "exchange code",
+			invoke: func(ctx context.Context, client identity.Provider) error {
+				_, err := client.ExchangeCode(ctx, "code", "http://localhost:3000/callback")
+				return err
+			},
+		},
+		{
+			name: "verify token",
+			invoke: func(ctx context.Context, client identity.Provider) error {
+				_, err := client.VerifyToken(ctx, "accessToken")
+				return err
+			},
+		},
+		{
+			name: "refresh token",
+			invoke: func(ctx context.Context, client identity.Provider) error {
+				_, err := client.RefreshToken(ctx, "refreshToken")
+				return err
+			},
+		},
+		{
+			name: "revoke token",
+			invoke: func(ctx context.Context, client identity.Provider) error {
+				return client.RevokeToken(ctx, "refreshToken")
+			},
+		},
+		{
+			name: "get m2m token",
+			invoke: func(ctx context.Context, client identity.Provider) error {
+				_, err := client.GetM2MToken(ctx, "m2mClientID", "m2mClientSecret")
+				return err
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := httptest.NewServer(statusHandler(http.StatusOK))
+			defer server.Close()
+
+			client := NewClient(server.URL, "clientID", "clientSecret", "audience", 30*time.Second)
+
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			if err := tt.invoke(ctx, client); !errors.Is(err, context.Canceled) {
+				t.Errorf("expected errors.Is(err, context.Canceled), but got %v", err)
 			}
 		})
 	}
