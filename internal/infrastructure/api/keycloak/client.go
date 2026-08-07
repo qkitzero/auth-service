@@ -16,6 +16,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/qkitzero/auth-service/internal/application/identity"
+	"github.com/qkitzero/auth-service/internal/domain/token"
 )
 
 type client struct {
@@ -63,6 +64,9 @@ func (c *client) ExchangeCode(ctx context.Context, code, redirectURI string) (*i
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("%w: failed to exchange code, status: %d", token.ErrInvalidGrant, resp.StatusCode)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
 	}
@@ -144,12 +148,12 @@ func (c *client) VerifyToken(ctx context.Context, accessToken string) (*identity
 		return &rsa.PublicKey{N: n, E: e}, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", token.ErrInvalidToken, err)
 	}
 
 	subject, err := parsedToken.Claims.GetSubject()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", token.ErrInvalidToken, err)
 	}
 
 	return &identity.VerifyResult{Subject: subject}, nil
@@ -176,8 +180,11 @@ func (c *client) RefreshToken(ctx context.Context, refreshToken string) (*identi
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("%w: failed to refresh token, status: %d", token.ErrInvalidGrant, resp.StatusCode)
+	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("failed to refresh token, status: %d", resp.StatusCode)
 	}
 
 	var tokenResponse TokenResponse
@@ -211,8 +218,11 @@ func (c *client) RevokeToken(ctx context.Context, refreshToken string) error {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("%w: failed to revoke token, status: %d", token.ErrInvalidGrant, resp.StatusCode)
+	}
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("failed to logout, status: %d", resp.StatusCode)
+		return fmt.Errorf("failed to revoke token, status: %d", resp.StatusCode)
 	}
 
 	return nil
