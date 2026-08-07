@@ -19,6 +19,16 @@ import (
 	"github.com/qkitzero/auth-service/internal/domain/token"
 )
 
+var (
+	errNotImplemented           = errors.New("not implemented")
+	errUnexpectedSigningMethod  = errors.New("unexpected signing method")
+	errMissingKid               = errors.New("no kid in token header")
+	errMissingPublicKey         = errors.New("missing public key")
+	errPublicKeyNotFound        = errors.New("could not find public key")
+	errInvalidPublicKeyModulus  = errors.New("invalid public key modulus")
+	errInvalidPublicKeyExponent = errors.New("invalid public key exponent")
+)
+
 type client struct {
 	baseURL      string
 	clientID     string
@@ -39,7 +49,7 @@ func NewClient(baseURL, clientID, clientSecret, realm string, timeout time.Durat
 }
 
 func (c *client) Login(ctx context.Context, redirectURI string) (string, error) {
-	return "", errors.New("not implemented")
+	return "", errNotImplemented
 }
 
 func (c *client) ExchangeCode(ctx context.Context, code, redirectURI string) (*identity.TokenResult, error) {
@@ -97,7 +107,7 @@ func (c *client) VerifyToken(ctx context.Context, accessToken string) (*identity
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to exchange code, status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("failed to get public key, status: %d", resp.StatusCode)
 	}
 
 	var publicKeyResponse PublicKeyResponse
@@ -106,17 +116,17 @@ func (c *client) VerifyToken(ctx context.Context, accessToken string) (*identity
 	}
 
 	if len(publicKeyResponse.Keys) == 0 {
-		return nil, fmt.Errorf("missing public key")
+		return nil, errMissingPublicKey
 	}
 
 	parsedToken, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("%w: %v", errUnexpectedSigningMethod, token.Header["alg"])
 		}
 
 		kid := token.Header["kid"]
 		if kid == nil {
-			return nil, fmt.Errorf("no kid in token header")
+			return nil, errMissingKid
 		}
 
 		var publicKey *PublicKey
@@ -129,17 +139,17 @@ func (c *client) VerifyToken(ctx context.Context, accessToken string) (*identity
 		}
 
 		if publicKey == nil {
-			return nil, fmt.Errorf("could not find public key")
+			return nil, errPublicKeyNotFound
 		}
 
 		nBytes, err := base64.RawURLEncoding.DecodeString(publicKey.N)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %w", errInvalidPublicKeyModulus, err)
 		}
 
 		eBytes, err := base64.RawURLEncoding.DecodeString(publicKey.E)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %w", errInvalidPublicKeyExponent, err)
 		}
 
 		n := new(big.Int).SetBytes(nBytes)
@@ -148,12 +158,12 @@ func (c *client) VerifyToken(ctx context.Context, accessToken string) (*identity
 		return &rsa.PublicKey{N: n, E: e}, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", token.ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %w", token.ErrInvalidToken, err)
 	}
 
 	subject, err := parsedToken.Claims.GetSubject()
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", token.ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %w", token.ErrInvalidToken, err)
 	}
 
 	return &identity.VerifyResult{Subject: subject}, nil
@@ -229,9 +239,9 @@ func (c *client) RevokeToken(ctx context.Context, refreshToken string) error {
 }
 
 func (c *client) Logout(ctx context.Context, returnTo string) (string, error) {
-	return "", errors.New("not implemented")
+	return "", errNotImplemented
 }
 
 func (c *client) GetM2MToken(ctx context.Context, clientID, clientSecret string) (*identity.TokenResult, error) {
-	return nil, errors.New("not implemented")
+	return nil, errNotImplemented
 }
