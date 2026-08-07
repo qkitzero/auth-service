@@ -3,6 +3,7 @@
 [![release](https://img.shields.io/github/v/release/qkitzero/auth-service?logo=github)](https://github.com/qkitzero/auth-service/releases)
 [![test](https://github.com/qkitzero/auth-service/actions/workflows/test.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/qkitzero/auth-service/graph/badge.svg)](https://codecov.io/gh/qkitzero/auth-service)
+[![Lint](https://github.com/qkitzero/auth-service/actions/workflows/lint.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/lint.yml)
 [![Buf CI](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/buf-ci.yaml)
 [![OpenAPI](https://github.com/qkitzero/auth-service/actions/workflows/openapi.yml/badge.svg)](https://github.com/qkitzero/auth-service/actions/workflows/openapi.yml)
 
