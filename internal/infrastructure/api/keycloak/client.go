@@ -158,6 +158,9 @@ func (c *client) VerifyToken(ctx context.Context, accessToken string) (*identity
 		return &rsa.PublicKey{N: n, E: e}, nil
 	})
 	if err != nil {
+		if errors.Is(err, errInvalidPublicKeyModulus) || errors.Is(err, errInvalidPublicKeyExponent) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("%w: %w", token.ErrInvalidToken, err)
 	}
 
